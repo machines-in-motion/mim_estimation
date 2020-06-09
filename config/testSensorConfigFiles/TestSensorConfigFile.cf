@@ -1,0 +1,18 @@
+an_integer 1111
+double_vector 12.1     31.2     78.3
+
+  a_float		12.3
+
+/* this file contains some numbers to be loaded as test values
+   Note: the file is parsed according to keywords, after the keyword  */
+/* another comment  */
+
+
+int_vector 321    654     741
+
+
+a_string Thus conscience does make cowards of us all
+another_double 
+
+
+a_string_at_end_of_file For oh for oh the hobbyhorse is forgot!

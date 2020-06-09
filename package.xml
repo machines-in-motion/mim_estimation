@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<package format="2">
+
+  <name> robot_estimation </name>
+  <version> 1.0.0 </version>
+  <license> BSD 3-Clause </license>
+  
+  <author email="mnaveau@tuebingen.mpg.de">Maximilien Naveau</author>
+  <maintainer email="mberenz@tuebingen.mpg.de">Vincent Berenz</maintainer>
+  
+  <description>
+      This package contains estimation algorithm C++ implementations with their
+      Python bindings and their Python prototypes.
+  </description>
+  
+  <buildtool_depend> catkin </buildtool_depend>
+
+  <depend> mpi_cmake_modules </depend>
+  <depend> yaml_cpp_catkin </depend>
+  <depend> eigen </depend>
+
+</package>

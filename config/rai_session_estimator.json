@@ -1,0 +1,415 @@
+{
+    "ID": "1ee3ea6a788711e8b6b2f48c50c559b3", 
+    "creation_time": "Mon Jun 25 16:50:36 2018", 
+    "framework_version": "0.2.1", 
+    "root_path": "/home/mnaveau/devel/workspace/src/catkin/humanoids/humanoid_control/estimator/template/config", 
+    "sensors_data": {
+        "arg_max": 9999, 
+        "filename": "output_demo_estimator.dfile", 
+        "name": "Sensors", 
+        "reduce_x_axis": true, 
+        "serial_version": "1.0"
+    }, 
+    "serial_version": "1.1", 
+    "videos": [], 
+    "window": {
+        "plot_size": [
+            400, 
+            400
+        ], 
+        "serial_version": "1.0", 
+        "title": "Main Window", 
+        "views": {
+            "biases": {
+                "name": "biases", 
+                "plots": [
+                    {
+                        "id_number": 0, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "output_accel_bias_x", 
+                            "output_accel_bias_y", 
+                            "output_accel_bias_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 1, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "output_gyro_bias_x", 
+                            "output_gyro_bias_y", 
+                            "output_gyro_bias_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }
+                ], 
+                "serial_version": "1.0"
+            }, 
+            "compare_orientation": {
+                "name": "compare_orientation", 
+                "plots": [
+                    {
+                        "id_number": 0, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_vicon_base_quat_q0", 
+                            "output_base_quat_q0"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 1, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_vicon_base_quat_q1", 
+                            "output_base_quat_q1"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 2, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_vicon_base_quat_q2", 
+                            "output_base_quat_q2"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 3, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_vicon_base_quat_q3", 
+                            "output_base_quat_q3"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }
+                ], 
+                "serial_version": "1.0"
+            }, 
+            "compare_position": {
+                "name": "compare_position", 
+                "plots": [
+                    {
+                        "id_number": 0, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_vicon_base_pose_1_4", 
+                            "output_base_position_x"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 1, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_vicon_base_pose_2_4", 
+                            "output_base_position_y"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 2, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_vicon_base_pose_3_4", 
+                            "output_base_position_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }
+                ], 
+                "serial_version": "1.0"
+            }, 
+            "input_base": {
+                "name": "input_base", 
+                "plots": [
+                    {
+                        "id_number": 0, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_vicon_base_pose_1_4", 
+                            "input_vicon_base_pose_2_4", 
+                            "input_vicon_base_pose_3_4"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 1, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_vicon_base_quat_q0", 
+                            "input_vicon_base_quat_q1", 
+                            "input_vicon_base_quat_q2", 
+                            "input_vicon_base_quat_q3"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }
+                ], 
+                "serial_version": "1.0"
+            }, 
+            "input_imu": {
+                "name": "input_imu", 
+                "plots": [
+                    {
+                        "id_number": 0, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_imu_acc_x", 
+                            "input_imu_acc_y", 
+                            "input_imu_acc_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 1, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "input_imu_gyro_x", 
+                            "input_imu_gyro_y", 
+                            "input_imu_gyro_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }
+                ], 
+                "serial_version": "1.0"
+            }, 
+            "output_base_position": {
+                "name": "output_base_position", 
+                "plots": [
+                    {
+                        "id_number": 0, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "output_base_position_x", 
+                            "output_base_position_y", 
+                            "output_base_position_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 1, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "output_base_quat_q0", 
+                            "output_base_quat_q1", 
+                            "output_base_quat_q2", 
+                            "output_base_quat_q3"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }
+                ], 
+                "serial_version": "1.0"
+            }, 
+            "output_base_velocity": {
+                "name": "output_base_velocity", 
+                "plots": [
+                    {
+                        "id_number": 0, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "output_base_linear_velocity_x", 
+                            "output_base_linear_velocity_y", 
+                            "output_base_linear_velocity_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 1, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "output_base_angular_velocity_x", 
+                            "output_base_angular_velocity_y", 
+                            "output_base_angular_velocity_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }
+                ], 
+                "serial_version": "1.0"
+            }, 
+            "output_imu_position": {
+                "name": "output_imu_position", 
+                "plots": [
+                    {
+                        "id_number": 0, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "output_imu_position_x", 
+                            "output_imu_position_y", 
+                            "output_imu_position_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 1, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "output_imu_orientation_q0", 
+                            "output_imu_orientation_q1", 
+                            "output_imu_orientation_q2", 
+                            "output_imu_orientation_q3"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }
+                ], 
+                "serial_version": "1.0"
+            }, 
+            "output_imu_velocity": {
+                "name": "output_imu_velocity", 
+                "plots": [
+                    {
+                        "id_number": 0, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "output_imu_linear_velocity_x", 
+                            "output_imu_linear_velocity_y", 
+                            "output_imu_linear_velocity_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }, 
+                    {
+                        "id_number": 1, 
+                        "include_vertical_lines": true, 
+                        "name": "Plot", 
+                        "plot_type": "PyQtGraph", 
+                        "serial_version": "1.0", 
+                        "streams": [
+                            "output_imu_angular_velocity_x", 
+                            "output_imu_angular_velocity_y", 
+                            "output_imu_angular_velocity_z"
+                        ], 
+                        "x_label": "time", 
+                        "x_units": "s", 
+                        "y_label": "Streams", 
+                        "y_units": ""
+                    }
+                ], 
+                "serial_version": "1.0"
+            }
+        }, 
+        "window_size": [
+            2000, 
+            800
+        ]
+    }
+}

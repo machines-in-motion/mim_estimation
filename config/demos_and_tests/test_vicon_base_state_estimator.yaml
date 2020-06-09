@@ -1,0 +1,31 @@
+robot_state_est:
+  endeffector_jacobian_derivative_filter: 0.0
+  jacobian_derivative_filter: 0.0
+  joint_sensors_filter_cutoff: 1.
+  wrench_filter_cutoff: 1.
+  force_threshold_for_contact: 50
+  base_state_ekf:
+    qf: 0.00078
+    qw: 0.000523
+    qbf: 0.0001
+    qbw: 0.000618
+    qpL: 0.001
+    qpR: 0.001
+    qqL: 0.01
+    qqR: 0.01
+    rpL: 0.01
+    rpR: 0.01
+    rqL: 0.01
+    rqR: 0.01
+    stdev_init: 0.01
+    update_on: true
+  vicon_bse:
+    proc_noise_accel: 0.1
+    proc_noise_gyro: 0.1
+    proc_noise_accel_bias: 0.1
+    proc_noise_gyro_bias: 0.1
+    meas_noise_base_pos: 1.0
+    meas_noise_base_quat: 1.0
+    init_var: 0.1
+
+task_servo_rate: 0.001
