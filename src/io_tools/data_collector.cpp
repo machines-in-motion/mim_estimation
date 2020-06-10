@@ -88,13 +88,19 @@ void DataCollector::addQuaternion(const Eigen::Ref<const Eigen::Vector4d>& data,
                                   const std::string& name)
 {
     std::vector<std::string> varnames;
-    varnames.push_back(name + "_q0");
-    varnames.push_back(name + "_q1");
-    varnames.push_back(name + "_q2");
-    varnames.push_back(name + "_q3");
+    varnames.push_back(name + "_x");
+    varnames.push_back(name + "_y");
+    varnames.push_back(name + "_z");
+    varnames.push_back(name + "_w");
     std::vector<std::string> un;
     un.resize(4, "-");
     addVector(data, varnames, un);
+}
+
+void DataCollector::addQuaternion(const Eigen::Quaterniond& data,
+                                  const std::string& name)
+{
+    addQuaternion(data.coeffs(), name);
 }
 
 void DataCollector::addVector6d(

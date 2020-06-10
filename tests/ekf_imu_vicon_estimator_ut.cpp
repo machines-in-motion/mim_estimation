@@ -8,7 +8,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "estimator/demos_and_tests/ekf_vicon_imu_simple.hh"
+#include "robot_estimation/demos_and_tests/ekf_vicon_imu_simple.hpp"
 
 /* ************************ SETUP CLASS **************************** */
 
@@ -38,31 +38,34 @@ protected:
 
 // Can we just read a dfile and estimate from it?
 TEST_F(EstimatorTests, test_vicon_base_state_estimator){
-  estimator::test::EstimatorViconImuTest evi_test(yaml_file_, d_file_) ;
+  robot_estimation::test::EstimatorViconImuTest evi_test(yaml_file_, d_file_) ;
   evi_test.run();
 
   // public stat on the base pose tracking
   ASSERT_NEAR(evi_test.avg_err_base_pose  , 4.16688e-06, 1e-6);
   ASSERT_NEAR(evi_test.min_err_base_pose  , 2.50663e-10, 1e-6);
   ASSERT_NEAR(evi_test.max_err_base_pose  , 0.00539555 , 1e-6);
+  //
   ASSERT_NEAR(evi_test.avg_err_base_pose_x, 9.43891e-06, 1e-6);
   ASSERT_NEAR(evi_test.min_err_base_pose_x, 2.50663e-10, 1e-6);
   ASSERT_NEAR(evi_test.max_err_base_pose_x, 0.00539555 , 1e-6);
+  //
   ASSERT_NEAR(evi_test.avg_err_base_pose_y, 7.47841e-06, 1e-6);
   ASSERT_NEAR(evi_test.min_err_base_pose_y, 1.08386e-08, 1e-6);
   ASSERT_NEAR(evi_test.max_err_base_pose_y, 0.00437135 , 1e-6);
+  //
   ASSERT_NEAR(evi_test.avg_err_base_pose_z, 3.3535e-06 , 1e-6);
   ASSERT_NEAR(evi_test.min_err_base_pose_z, 1.75194e-09, 1e-6);
   ASSERT_NEAR(evi_test.max_err_base_pose_z, 0.00224563 , 1e-6);
-  ASSERT_NEAR(evi_test.avg_err_base_quat  , 2.12996e-06, 1e-6);
-  ASSERT_NEAR(evi_test.min_err_base_quat  , 0.0        , 1e-6);
-  ASSERT_NEAR(evi_test.max_err_base_quat  , 0.0031145  , 1e-6);
+  
   ASSERT_NEAR(evi_test.avg_err_base_quat_x, 4.78398e-06, 1e-6);
   ASSERT_NEAR(evi_test.min_err_base_quat_x, 0.0        , 1e-6);
   ASSERT_NEAR(evi_test.max_err_base_quat_x, 0.00817328 , 1e-6);
+  //
   ASSERT_NEAR(evi_test.avg_err_base_quat_y, 3.42904e-06, 1e-6);
   ASSERT_NEAR(evi_test.min_err_base_quat_y, 0.0        , 1e-6);
   ASSERT_NEAR(evi_test.max_err_base_quat_y, 0.00498303 , 1e-6);
+  //
   ASSERT_NEAR(evi_test.avg_err_base_quat_z, 6.23457e-06, 1e-6);
   ASSERT_NEAR(evi_test.min_err_base_quat_z, 0.0        , 1e-6);
   ASSERT_NEAR(evi_test.max_err_base_quat_z, 0.00623243 , 1e-6);

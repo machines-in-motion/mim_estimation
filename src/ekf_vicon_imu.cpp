@@ -76,6 +76,7 @@ void EkfViconImu::initialize(
     // get initial yaw
     Eigen::Quaterniond base_pose_data_yaw;
     base_quat_vicon_ = base_quat;
+    base_quat_vicon_.normalize();
     Eigen::Vector3d init_base_abg =
         pinocchio::rpy::matrixToRpy(base_quat_vicon_.toRotationMatrix());
     init_base_abg(2) = 0.0;  // zero the yaw

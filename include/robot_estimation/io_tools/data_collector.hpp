@@ -87,6 +87,11 @@ public:
     void addQuaternion(const Eigen::Ref<const Eigen::Vector4d>& data,
                        const std::string& name);
 
+    //! the actual recorded names will be name_q0, name_q1, name_q2, name_q3
+    //! with units "-"
+    void addQuaternion(const Eigen::Quaterniond& data,
+                       const std::string& name);
+
     //! the actual recorded names will have extension x,y,z,a,b,g
     void addVector6d(const Eigen::Ref<const Eigen::Matrix<double, 6, 1> >& data,
                      const std::string& name,

@@ -7,7 +7,7 @@
  * @brief Implementation of the NonRtDataCollector class.
  */
 
-#include "robot_estimation/io_tools/non_rt_data_collector.h"
+#include "robot_estimation/io_tools/non_rt_data_collector.hpp"
 #include <assert.h>
 #include <algorithm>
 #include <fstream>

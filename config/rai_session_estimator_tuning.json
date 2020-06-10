@@ -30,8 +30,8 @@
                         "plot_type": "PyQtGraph", 
                         "serial_version": "1.0", 
                         "streams": [
-                            "input_vicon_base_quat_q0", 
-                            "output_base_quat_q0"
+                            "input_vicon_base_quat_x", 
+                            "output_base_quat_x"
                         ], 
                         "x_label": "time", 
                         "x_units": "s", 
@@ -45,8 +45,8 @@
                         "plot_type": "PyQtGraph", 
                         "serial_version": "1.0", 
                         "streams": [
-                            "input_vicon_base_quat_q1", 
-                            "output_base_quat_q1"
+                            "input_vicon_base_quat_y", 
+                            "output_base_quat_y"
                         ], 
                         "x_label": "time", 
                         "x_units": "s", 
@@ -60,8 +60,8 @@
                         "plot_type": "PyQtGraph", 
                         "serial_version": "1.0", 
                         "streams": [
-                            "input_vicon_base_quat_q2", 
-                            "output_base_quat_q2"
+                            "input_vicon_base_quat_z", 
+                            "output_base_quat_z"
                         ], 
                         "x_label": "time", 
                         "x_units": "s", 
@@ -75,8 +75,8 @@
                         "plot_type": "PyQtGraph", 
                         "serial_version": "1.0", 
                         "streams": [
-                            "input_vicon_base_quat_q3", 
-                            "output_base_quat_q3"
+                            "input_vicon_base_quat_w", 
+                            "output_base_quat_w"
                         ], 
                         "x_label": "time", 
                         "x_units": "s", 

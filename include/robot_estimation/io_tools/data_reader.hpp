@@ -57,18 +57,19 @@ public:
     ///
     void fillPose(int row,
                   const std::vector<int>& indexes,
-                  geometry_utils::CoordinateTransform& pose);
+                  Eigen::Vector3d& pose,
+                  Eigen::Quaterniond& orientation);
 
-    ///
-    /// \brief fillTwist, fill an existing twist object with the data.
-    /// \param row: row index homogenous to time/sampling_period.
-    /// \param indexes: the indexes of the data streams to copy in order:
-    /// [v_x, v_y, v_z, w_x, w_y, w_z].
-    /// \param twist: the object to fill.
-    ///
-    void fillTwist(int row,
-                   const std::vector<int>& indexes,
-                   geometry_utils::SpatialMotionVector& twist);
+    // ///
+    // /// \brief fillTwist, fill an existing twist object with the data.
+    // /// \param row: row index homogenous to time/sampling_period.
+    // /// \param indexes: the indexes of the data streams to copy in order:
+    // /// [v_x, v_y, v_z, w_x, w_y, w_z].
+    // /// \param twist: the object to fill.
+    // ///
+    // void fillTwist(int row,
+    //                const std::vector<int>& indexes,
+    //                geometry_utils::SpatialMotionVector& twist);
 
     ///
     /// \brief fillVector, fill an existing vector from the data
@@ -80,16 +81,16 @@ public:
                     const std::vector<int>& indexes,
                     Eigen::Ref<Eigen::VectorXd> vec);
 
-    ///
-    /// \brief fillWrench, fill an existing wrench from the data
-    /// \param row: row index homogenous to time/sampling_period.
-    /// \param indexes: the indexes of the data streams to copy in order:
-    /// [f_x, f_y, f_z, tau_x, tau_y, tau_z]
-    /// \param wrench
-    ///
-    void fillWrench(int row,
-                    const std::vector<int>& index,
-                    geometry_utils::SpatialForceVector& wrench);
+    // ///
+    // /// \brief fillWrench, fill an existing wrench from the data
+    // /// \param row: row index homogenous to time/sampling_period.
+    // /// \param indexes: the indexes of the data streams to copy in order:
+    // /// [f_x, f_y, f_z, tau_x, tau_y, tau_z]
+    // /// \param wrench
+    // ///
+    // void fillWrench(int row,
+    //                 const std::vector<int>& index,
+    //                 geometry_utils::SpatialForceVector& wrench);
 
     ///
     /// \brief getNbRows, get the number of rows equivalent to the number of

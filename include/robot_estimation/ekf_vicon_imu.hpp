@@ -264,10 +264,10 @@ public:
     /// \param base_angular_velocity: the base angular velocity (3D vector)
     ///
     void getBaseFromFilterState(
-        Eigen::Ref<Eigen::Vector3d>& output_base_position,
+        Eigen::Ref<Eigen::Vector3d> output_base_position,
         Eigen::Quaterniond& output_base_orientation,
-        Eigen::Ref<Eigen::Vector3d>& output_base_linear_velocity,
-        Eigen::Ref<Eigen::Vector3d>& output_base_angular_velocity)
+        Eigen::Ref<Eigen::Vector3d> output_base_linear_velocity,
+        Eigen::Ref<Eigen::Vector3d> output_base_angular_velocity)
     {
         Eigen::Matrix3d world_R_base = state_post_.imu_quat.toRotationMatrix();
         output_base_position =
@@ -324,5 +324,3 @@ private:
 };
 
 }  // namespace robot_estimation
-
-#endif

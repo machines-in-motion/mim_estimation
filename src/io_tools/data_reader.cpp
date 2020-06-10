@@ -117,7 +117,8 @@ void DataReader::getIndexes(const std::vector<std::string>& stream_names,
 
 void DataReader::fillPose(int row,
                           const std::vector<int>& index,
-                          geometry_utils::CoordinateTransform& pose)
+                          Eigen::Vector3d& pose,
+                          Eigen::Quaterniond& orientation)
 {
     assert(index.size() == 7);
     if (index.size() != 7)
@@ -128,32 +129,31 @@ void DataReader::fillPose(int row,
                  "(3+4)";
         throw std::runtime_error(error.str());
     }
-    pose.setTranslation(Eigen::Vector3d(
-        data_(row, index[0]), data_(row, index[1]), data_(row, index[2])));
-    geometry_utils::Quaternion q(data_(row, index[3]),
-                                 data_(row, index[4]),
-                                 data_(row, index[5]),
-                                 data_(row, index[6]));
-    pose.setRotation(q.quaternion_to_rotation_matrix().transpose());
+    pose = Eigen::Vector3d(
+        data_(row, index[0]), data_(row, index[1]), data_(row, index[2]));
+    orientation.x() = data_(row, index[3]);
+    orientation.y() = data_(row, index[4]);
+    orientation.z() = data_(row, index[5]);
+    orientation.w() = data_(row, index[6]);
 }
 
-void DataReader::fillTwist(int row,
-                           const std::vector<int>& index,
-                           geometry_utils::SpatialMotionVector& twist)
-{
-    assert(index.size() == 6);
-    if (index.size() != 6)
-    {
-        std::stringstream error;
-        error << "The number the index vector (" << index.size()
-              << ") does not match the size of a twist (6)";
-        throw std::runtime_error(error.str());
-    }
-    twist.v() = Eigen::Vector3d(
-        data_(row, index[0]), data_(row, index[1]), data_(row, index[2]));
-    twist.w() = Eigen::Vector3d(
-        data_(row, index[3]), data_(row, index[4]), data_(row, index[5]));
-}
+// void DataReader::fillTwist(int row,
+//                            const std::vector<int>& index,
+//                            geometry_utils::SpatialMotionVector& twist)
+// {
+//     assert(index.size() == 6);
+//     if (index.size() != 6)
+//     {
+//         std::stringstream error;
+//         error << "The number the index vector (" << index.size()
+//               << ") does not match the size of a twist (6)";
+//         throw std::runtime_error(error.str());
+//     }
+//     twist.v() = Eigen::Vector3d(
+//         data_(row, index[0]), data_(row, index[1]), data_(row, index[2]));
+//     twist.w() = Eigen::Vector3d(
+//         data_(row, index[3]), data_(row, index[4]), data_(row, index[5]));
+// }
 
 void DataReader::fillVector(int row,
                             const std::vector<int>& index,
@@ -171,23 +171,23 @@ void DataReader::fillVector(int row,
     for (int i = 0; i < vec.size(); ++i) vec(i) = data_(row, index[i]);
 }
 
-void DataReader::fillWrench(int row,
-                            const std::vector<int>& index,
-                            geometry_utils::SpatialForceVector& wrench)
-{
-    assert(index.size() == 6);
-    if (index.size() != 6)
-    {
-        std::stringstream error;
-        error << "The number the index vector (" << index.size()
-              << ") does not match the size of a wrench (6)";
-        throw std::runtime_error(error.str());
-    }
-    wrench.f() = Eigen::Vector3d(
-        data_(row, index[0]), data_(row, index[1]), data_(row, index[2]));
-    wrench.n() = Eigen::Vector3d(
-        data_(row, index[3]), data_(row, index[4]), data_(row, index[5]));
-}
+// void DataReader::fillWrench(int row,
+//                             const std::vector<int>& index,
+//                             geometry_utils::SpatialForceVector& wrench)
+// {
+//     assert(index.size() == 6);
+//     if (index.size() != 6)
+//     {
+//         std::stringstream error;
+//         error << "The number the index vector (" << index.size()
+//               << ") does not match the size of a wrench (6)";
+//         throw std::runtime_error(error.str());
+//     }
+//     wrench.f() = Eigen::Vector3d(
+//         data_(row, index[0]), data_(row, index[1]), data_(row, index[2]));
+//     wrench.n() = Eigen::Vector3d(
+//         data_(row, index[3]), data_(row, index[4]), data_(row, index[5]));
+// }
 
 }  // end namespace io_tools
 }  // end namespace robot_estimation
