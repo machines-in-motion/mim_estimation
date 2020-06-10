@@ -88,4 +88,4 @@ target_link_libraries(demo_${PROJECT_NAME} ${PROJECT_NAME} ${catkin_LIBRARIES})
 ##########################
 # building documentation #
 ##########################
-build_doxygen_documentation()
+build_documentation()
