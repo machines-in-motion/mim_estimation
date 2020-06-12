@@ -37,7 +37,7 @@ protected:
 /* ************************ testing of estimator **************************** */
 
 // Can we just read a dfile and estimate from it?
-TEST_F(EstimatorTests, test_vicon_base_state_estimator){
+TEST_F(EstimatorTests, test_estimator_vicon_imu_test){
   robot_estimation::test::EstimatorViconImuTest evi_test(yaml_file_, d_file_) ;
   evi_test.run();
 

@@ -48,20 +48,29 @@ set(EXPORTED_LIBRAIRIES ${EXPORTED_LIBRAIRIES} ${PROJECT_NAME})
 # Unittests
 #
 
-# add unit tests
-set(CONFIG_PATH ${PROJECT_SOURCE_DIR}/config)
-catkin_add_gtest(test_estimator_${ROBOT} tests/main.cpp
-                 tests/ekf_imu_vicon_estimator_ut.cpp)
-# link to the created librairies and its dependencies
-target_link_libraries(test_estimator_${ROBOT} ${PROJECT_NAME}
-                      ${catkin_LIBRARIES})
-# create 2 macro: the path to the config file and the path to the data file
-target_compile_definitions(
-  test_estimator_${ROBOT}
-  PUBLIC
-    TEST_PARAMETER_YAML_FILE_PATH="${CONFIG_PATH}/demos_and_tests/test_vicon_base_state_estimator.yaml"
-    TEST_DATA_FILE_PATH="${CONFIG_PATH}/demos_and_tests/test_vicon_base_state_estimator.dat"
-)
+# Tests configuration files
+set(CONFIG_PATH ${PROJECT_SOURCE_DIR}/config/demos_and_tests)
+include_directories(tests)
+set(unit_tests test_butterworth_filter test_ekf_vicon_imu
+               test_extended_kalman_filter)
+
+foreach(unit_test ${unit_tests})
+
+  catkin_add_gtest(${unit_test} tests/main.cpp tests/${unit_test}.cpp)
+
+  # link to the created librairies and its dependencies
+  target_link_libraries(${unit_test} ${PROJECT_NAME}
+                        ${catkin_LIBRARIES})
+  # create 2 macro: the path to the config file and the path to the data file
+  target_compile_definitions(
+    ${unit_test}
+    PUBLIC
+      CONFIG_PATH="${CONFIG_PATH}"
+      TEST_PARAMETER_YAML_FILE_PATH="${CONFIG_PATH}/test_vicon_base_state_estimator.yaml"
+      TEST_DATA_FILE_PATH="${CONFIG_PATH}/test_vicon_base_state_estimator.dat"
+  )
+
+endforeach(unit_test ${unit_tests})
 
 #
 # Demo
