@@ -106,6 +106,7 @@ void EkfViconImu::initialize(
     // Initialize the rest of the filter state:
     state_post_.imu_vel.setZero();
     state_post_.accel_bias.setZero();
+    state_post_.accel_bias(2) = -9.81; // the bias is the gravity field
     state_post_.gyro_bias.setZero();
     state_pre_ = state_post_;
 

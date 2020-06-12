@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
   robot_estimation::test::EstimatorViconImuTest evi_test(yaml_file, d_file) ;
   evi_test.run();
   evi_test.display_all_statistics();
-  evi_test.dump("output_demo_estimator.dfile");
+  evi_test.dump("/tmp/output_demo_estimator.dfile");
 
   return 0;
 }

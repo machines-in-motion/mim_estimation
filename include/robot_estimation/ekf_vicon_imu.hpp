@@ -21,9 +21,21 @@
 
 namespace robot_estimation
 {
+/**
+ * @brief State of the EkfViconImu.
+ *
+ * Contains in the following order:
+ * - the imu position (Vector3d [m])
+ * - the imu velocity (Vector3d [m/s])
+ * - the imu orientation (Vector3d 'log3(Quaternion)' [-]).
+ *   We work on the tangent space of SO3.
+ * - the accelerometer bias (Vector3d [m/s^2])
+ * - the gyroscope bias (Vector3d [rad/s])
+ */
 class ViconIMUState
 {
 public:
+    /** @brief Construct a new ViconIMUState object */
     ViconIMUState()
     {
         imu_pos.setZero();
@@ -33,11 +45,27 @@ public:
         gyro_bias.setZero();
     }
 
+    /** @brief Destroy the ViconIMUState object */
     ~ViconIMUState()
     {
     }
 
+    /**
+     * @brief State dimension:
+     * - imu position, dim 3
+     * - imu velocity, dim 3
+     * - imu orientation log(Quaternion). dim 3
+     * - imu acclerometer bias, dim 3
+     * - imu gyroscope bias, dim 3
+     */
     static const int state_dim = 15;
+
+    /**
+     * @brief Noise dimension, we assume that the position and orientation are
+     * without noise:
+     * - position, dim 0
+     * - position, dim 0
+     */
     static const int noise_dim =
         12; /*!< [ pos(0) acc ang_vel acc_bias gyro_bias ] */
 
@@ -48,7 +76,7 @@ public:
         s.imu_pos = this->imu_pos + rhs.segment(0, 3);
         s.imu_vel = this->imu_vel + rhs.segment(3, 3);
         s.imu_quat =
-            this->imu_quat * pinocchio::quaternion::exp3(rhs.segment(6, 3));
+            pinocchio::quaternion::exp3(rhs.segment(6, 3)) * this->imu_quat;
         s.imu_quat.normalize();
         s.accel_bias = this->accel_bias + rhs.segment(9, 3);
         s.gyro_bias = this->gyro_bias + rhs.segment(12, 3);
@@ -61,8 +89,8 @@ public:
         Eigen::Matrix<double, state_dim, 1> tmp;
         tmp.segment(0, 3) = this->imu_pos - rhs.imu_pos;
         tmp.segment(3, 3) = this->imu_vel - rhs.imu_vel;
-        tmp.segment(6, 3) = pinocchio::quaternion::log3(
-            this->imu_quat.inverse() * rhs.imu_quat);
+        tmp.segment(6, 3) = pinocchio::quaternion::log3(this->imu_quat *
+                                                        rhs.imu_quat.inverse());
         tmp.segment(9, 3) = this->accel_bias - rhs.accel_bias;
         tmp.segment(12, 3) = this->gyro_bias - rhs.gyro_bias;
         return tmp;
@@ -144,10 +172,8 @@ public:
     {
         ViconIMUMeasure s;
         s.meas_imu_pos = this->meas_imu_pos + rhs.segment(0, 3);
-        /// @todo check the (+) quaterion operator
-        s.meas_imu_quat =
-            this->meas_imu_quat *
-            pinocchio::quaternion::exp3(rhs.segment(3, 3)).inverse();
+        s.meas_imu_quat = pinocchio::quaternion::exp3(rhs.segment(3, 3)) *
+                          this->meas_imu_quat;
         return s;
     }
 

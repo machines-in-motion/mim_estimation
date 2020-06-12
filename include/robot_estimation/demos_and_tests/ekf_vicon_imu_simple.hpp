@@ -202,7 +202,7 @@ public:
     }
 
     ///
-    /// \brief subscribe_to_data_collector, colelct the address of all variables
+    /// \brief subscribe_to_data_collector, collect the address of all variables
     /// to save
     ///
     void subscribe_to_data_collector()
