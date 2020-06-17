@@ -35,8 +35,11 @@ catkin_package(LIBRARIES ${PROJECT_NAME} INCLUDE_DIRS include CATKIN_DEPENDS
 
 # define the source files
 set(${PROJECT_NAME}_SRC_FILES
-    src/ekf_vicon_imu.cpp src/io_tools/data_collector.cpp
-    src/io_tools/data_reader.cpp src/io_tools/non_rt_data_collector.cpp)
+    src/ekf_vicon_imu.cpp #
+    src/end_effector_force_estimator.cpp #
+    src/io_tools/data_collector.cpp #
+    src/io_tools/data_reader.cpp #
+    src/io_tools/non_rt_data_collector.cpp)
 # create the library
 add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}_SRC_FILES})
 # link the dependencies
@@ -52,23 +55,21 @@ set(EXPORTED_LIBRAIRIES ${EXPORTED_LIBRAIRIES} ${PROJECT_NAME})
 set(CONFIG_PATH ${PROJECT_SOURCE_DIR}/config/demos_and_tests)
 include_directories(tests)
 set(unit_tests test_butterworth_filter test_ekf_vicon_imu
-               test_extended_kalman_filter)
+               test_extended_kalman_filter test_end_effector_force_estimator)
 
 foreach(unit_test ${unit_tests})
 
   catkin_add_gtest(${unit_test} tests/main.cpp tests/${unit_test}.cpp)
 
   # link to the created librairies and its dependencies
-  target_link_libraries(${unit_test} ${PROJECT_NAME}
-                        ${catkin_LIBRARIES})
+  target_link_libraries(${unit_test} ${PROJECT_NAME} ${catkin_LIBRARIES})
   # create 2 macro: the path to the config file and the path to the data file
   target_compile_definitions(
     ${unit_test}
     PUBLIC
       CONFIG_PATH="${CONFIG_PATH}"
       TEST_PARAMETER_YAML_FILE_PATH="${CONFIG_PATH}/test_vicon_base_state_estimator.yaml"
-      TEST_DATA_FILE_PATH="${CONFIG_PATH}/test_vicon_base_state_estimator.dat"
-  )
+      TEST_DATA_FILE_PATH="${CONFIG_PATH}/test_vicon_base_state_estimator.dat")
 
 endforeach(unit_test ${unit_tests})
 
