@@ -7,13 +7,13 @@
  * @brief Implementation of the NonRtDataCollector class.
  */
 
-#include "robot_estimation/io_tools/non_rt_data_collector.hpp"
+#include "mim_estimation/io_tools/non_rt_data_collector.hpp"
 #include <assert.h>
 #include <algorithm>
 #include <fstream>
 #include <iostream>
 
-namespace robot_estimation
+namespace mim_estimation
 {
 namespace io_tools
 {
@@ -255,4 +255,4 @@ float NonRtDataCollector::reverseFloat(const float inFloat)
 }
 
 }  // end namespace io_tools
-}  // end namespace robot_estimation
+}  // end namespace mim_estimation

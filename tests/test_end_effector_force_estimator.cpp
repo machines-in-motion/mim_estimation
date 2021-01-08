@@ -8,7 +8,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "robot_estimation/end_effector_force_estimator.hpp"
+#include "mim_estimation/end_effector_force_estimator.hpp"
 
 /* ************************ SETUP CLASS **************************** */
 
@@ -26,9 +26,11 @@ protected:
 
     void TearDown()
     {
-        // do nothing the smart pointor are suppose to be dealt with
+        // do nothing the smart pointer are suppose to be dealt with
         // automatically
     }
+
+    std::string config_path_;
 };
 
 /* ************************ testing of estimator **************************** */

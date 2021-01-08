@@ -7,11 +7,11 @@
  * @brief Implementation of the DataCollector class.
  */
 
-#include "robot_estimation/io_tools/data_collector.hpp"
+#include "mim_estimation/io_tools/data_collector.hpp"
 
 #include <sstream>
 
-namespace robot_estimation
+namespace mim_estimation
 {
 namespace io_tools
 {
@@ -139,4 +139,4 @@ void DataCollector::addMatrix(const Eigen::Ref<const Eigen::MatrixXd>& data,
 }
 
 }  // end namespace io_tools
-}  // end namespace robot_estimation
+}  // end namespace mim_estimation

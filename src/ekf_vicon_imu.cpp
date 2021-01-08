@@ -7,11 +7,11 @@
  * @brief Implement the EkfViconImu class.
  */
 
-#include "robot_estimation/ekf_vicon_imu.hpp"
+#include "mim_estimation/ekf_vicon_imu.hpp"
 #include "pinocchio/math/rpy.hpp"
 #include "pinocchio/spatial/skew.hpp"
 
-namespace robot_estimation
+namespace mim_estimation
 {
 EkfViconImu::EkfViconImu(double dt, const YAML::Node& config)
     : config_(config), EKF(false, false, dt, 1)
@@ -279,4 +279,4 @@ void EkfViconImu::formActualMeas(void)
     meas_actual_.meas_imu_quat = base_quat_vicon_;
 }
 
-}  // namespace robot_estimation
+}  // namespace mim_estimation

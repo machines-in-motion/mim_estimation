@@ -8,7 +8,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "robot_estimation/demos_and_tests/ekf_vicon_imu_simple.hpp"
+#include "mim_estimation/demos_and_tests/ekf_vicon_imu_simple.hpp"
 
 /* ************************ SETUP CLASS **************************** */
 
@@ -38,7 +38,7 @@ protected:
 
 // Can we just read a dfile and estimate from it?
 TEST_F(EstimatorTests, test_estimator_vicon_imu_test){
-  robot_estimation::test::EstimatorViconImuTest evi_test(yaml_file_, d_file_) ;
+  mim_estimation::test::EstimatorViconImuTest evi_test(yaml_file_, d_file_) ;
   evi_test.run();
 
   // public stat on the base pose tracking

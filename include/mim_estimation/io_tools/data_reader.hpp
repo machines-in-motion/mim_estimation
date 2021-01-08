@@ -13,7 +13,7 @@
 
 #include <Eigen/Eigen>
 
-namespace robot_estimation
+namespace mim_estimation
 {
 namespace io_tools
 {
@@ -132,4 +132,4 @@ private:
 };
 
 }  // end namespace io_tools
-}  // end namespace robot_estimation
+}  // end namespace mim_estimation

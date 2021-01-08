@@ -6,9 +6,9 @@
  * @brief Simple demo that runs the EkfViconImu filter using a d-file as data.
  */
 
-#include "robot_estimation/demos_and_tests/ekf_vicon_imu_simple.hpp"
+#include "mim_estimation/demos_and_tests/ekf_vicon_imu_simple.hpp"
 
-using namespace robot_estimation ;
+using namespace mim_estimation ;
 
 
 ///
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
   std::cout << "Get the data from " << d_file << std::endl;
 
   /* *** create the object to demonstrate *** */
-  robot_estimation::test::EstimatorViconImuTest evi_test(yaml_file, d_file) ;
+  mim_estimation::test::EstimatorViconImuTest evi_test(yaml_file, d_file) ;
   evi_test.run();
   evi_test.display_all_statistics();
   evi_test.dump("/tmp/output_demo_estimator.dfile");

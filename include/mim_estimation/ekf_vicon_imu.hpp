@@ -12,14 +12,14 @@
 #include <Eigen/Eigen>
 #include <iostream>
 #include "pinocchio/spatial/explog-quaternion.hpp"
-#include "yaml_cpp_catkin/yaml_cpp_fwd.hpp"
+#include "yaml_utils/yaml_cpp_fwd.hpp"
 
-#include "robot_estimation/filtering_tools/ekf.hpp"
+#include "mim_estimation/filtering_tools/ekf.hpp"
 
 // Option to initialise to zero x,y,z and yaw from vicon at startup
 #define ZERO_INITIAL_STATE
 
-namespace robot_estimation
+namespace mim_estimation
 {
 /**
  * @brief State of the EkfViconImu.
@@ -349,4 +349,4 @@ private:
     YAML::Node config_;
 };
 
-}  // namespace robot_estimation
+}  // namespace mim_estimation

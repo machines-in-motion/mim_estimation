@@ -243,4 +243,4 @@ public:
   unsigned lin_order_;                     /*!< order of the process dynamic linearization */
 };
 
-#include "robot_estimation/filtering_tools/ekf.hxx"
+#include "mim_estimation/filtering_tools/ekf.hxx"

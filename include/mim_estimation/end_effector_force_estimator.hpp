@@ -13,7 +13,7 @@
 #include "pinocchio/multibody/data.hpp"
 #include "pinocchio/multibody/model.hpp"
 
-namespace robot_estimation
+namespace mim_estimation
 {
 class EndEffectorForceEstimator
 {
@@ -77,4 +77,4 @@ private:
     pinocchio::Data robot_data_;
 };
 
-}  // namespace robot_estimation
+}  // namespace mim_estimation

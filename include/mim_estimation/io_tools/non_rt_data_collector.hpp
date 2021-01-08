@@ -12,9 +12,9 @@
 
 #include <deque>
 #include <string>
-#include "robot_estimation/io_tools/data_collector.hpp"
+#include "mim_estimation/io_tools/data_collector.hpp"
 
-namespace robot_estimation
+namespace mim_estimation
 {
 namespace io_tools
 {
@@ -87,4 +87,4 @@ private:
 };
 
 }  // end namespace io_tools
-}  // end namespace robot_estimation
+}  // end namespace mim_estimation

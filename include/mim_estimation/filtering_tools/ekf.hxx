@@ -10,7 +10,7 @@
 
 // used here only to help the IDE (qtcreator) find the different variable
 // this include does nothing
-#include "robot_estimation/filtering_tools/ekf.hpp"
+#include "mim_estimation/filtering_tools/ekf.hpp"
 
 #ifndef EKF_HPP_
 #define EKF_HPP_

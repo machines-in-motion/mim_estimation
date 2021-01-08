@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <stdlib.h>
 #include <Eigen/Dense>
-#include "robot_estimation/filtering_tools/butterworth_filter.hpp"
+#include "mim_estimation/filtering_tools/butterworth_filter.hpp"
 
 using namespace standard_filters;
 

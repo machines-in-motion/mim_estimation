@@ -13,12 +13,12 @@
 #endif
 
 using namespace example_tasks;
-using namespace robot_estimation;
+using namespace mim_estimation;
 
 namespace estimation {
 
 RobotStateEstimation::RobotStateEstimation(YAML::Node n,
-                                           std::unique_ptr<robot_estimation::RobotProperties> robot_prop,
+                                           std::unique_ptr<mim_estimation::RobotProperties> robot_prop,
                                            JointPositionSensorPtr joint_sensors, BaseStateSensorPtr base_state_sensor,
                                            FTSensorPtrArray wrench_sensors, IMUPtr imu_sensors,
                                            KinematicsPtr filtered_kinematics, KinematicsPtr unfiltered_kinematics,
@@ -71,7 +71,7 @@ void RobotStateEstimation::initialize(const ContactDescritpion (&contact_descrip
   }
 
   //create unfiltered posture and initialize kinematics + filters
-  robot_estimation::RobotPosture init_posture(unfiltered_joint_position_sensor_->data().positions());
+  mim_estimation::RobotPosture init_posture(unfiltered_joint_position_sensor_->data().positions());
   if(simulated_base_state_ != nullptr){
     simulated_base_state_->acquire();
     init_posture.base_position_ = simulated_base_state_->data().pos();
@@ -105,8 +105,8 @@ void RobotStateEstimation::initialize(const ContactDescritpion (&contact_descrip
 #endif
   }
 
-  robot_estimation::RobotVelocity dummy_vel = robot_estimation::RobotVelocity::Zero();
-  robot_estimation::RobotAcceleration dummy_acc = robot_estimation::RobotAcceleration::Zero();
+  mim_estimation::RobotVelocity dummy_vel = mim_estimation::RobotVelocity::Zero();
+  mim_estimation::RobotAcceleration dummy_acc = mim_estimation::RobotAcceleration::Zero();
   unfiltered_forward_kinematics_->initialize(init_posture, dummy_vel, dummy_acc, contacts_);
   filtered_kinematics_->initialize(init_posture, dummy_vel, dummy_acc, contacts_);
 
@@ -124,11 +124,11 @@ void RobotStateEstimation::initialize(const ContactDescritpion (&contact_descrip
 }
 
 void RobotStateEstimation::update(){
-  const robot_estimation::RobotVelocity dummy_vel =
-      robot_estimation::RobotVelocity::Constant(
+  const mim_estimation::RobotVelocity dummy_vel =
+      mim_estimation::RobotVelocity::Constant(
           std::numeric_limits<double>::infinity());
-  const robot_estimation::RobotAcceleration dummy_acc =
-      robot_estimation::RobotAcceleration::Constant(
+  const mim_estimation::RobotAcceleration dummy_acc =
+      mim_estimation::RobotAcceleration::Constant(
           std::numeric_limits<double>::infinity());
 
   // // read position sensors
@@ -166,7 +166,7 @@ void RobotStateEstimation::update(){
   unfiltered_imu_->acquire();
 
   // construct forward kinematics from unfiltered joint positions only
-  robot_estimation::RobotPosture raw_posture_without_base(unfiltered_joint_position_sensor_->data().positions());
+  mim_estimation::RobotPosture raw_posture_without_base(unfiltered_joint_position_sensor_->data().positions());
   unfiltered_forward_kinematics_->update(raw_posture_without_base, dummy_vel, dummy_acc, contacts_);
 
   // estimate base pose
@@ -227,7 +227,7 @@ void RobotStateEstimation::computeFootCoPsOnFloor() {
     // Compute the CoPs from the world frame wrenches, assuming knowledge of the ground plan:
     filt_foot_cops_.at(i).setZero();
     filt_foot_cops_.at(i).segment(0,2) =
-            robot_estimation::ContactHelper::center_of_pressure(
+            mim_estimation::ContactHelper::center_of_pressure(
                     endeff_frc_world_frame, endeff_trq_world_frame,
                     geometry_utils::Transformations::transformVector(ft_sensor_tf,
                                                                      filtered_wrench_[EndeffItr(eff_id)].point_of_action()),
@@ -252,7 +252,7 @@ void RobotStateEstimation::computeFootCoPsOnFloor() {
   // compute the overall cop:
   ft_sensor_tf = filtered_kinematics_->link_pose(unfiltered_wrench_sensors_[Robot::id_left_foot_-1]->link_id());
   filt_overall_cop_.setZero();
-  filt_overall_cop_.segment(0,2) = robot_estimation::ContactHelper::center_of_pressure(
+  filt_overall_cop_.segment(0,2) = mim_estimation::ContactHelper::center_of_pressure(
           total_wrench_world.segment(0,3), total_wrench_world.segment(3,3),
       geometry_utils::Transformations::transformVector(ft_sensor_tf,
                                                            filtered_wrench_[Robot::id_left_foot_-1].point_of_action()),

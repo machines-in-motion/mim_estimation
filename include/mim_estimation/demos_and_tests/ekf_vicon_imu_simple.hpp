@@ -12,18 +12,18 @@
 #include <fstream>
 #include <string>
 
-#include "robot_estimation/ekf_vicon_imu.hpp"
-#include "robot_estimation/io_tools/data_reader.hpp"
-#include "robot_estimation/io_tools/non_rt_data_collector.hpp"
+#include "mim_estimation/ekf_vicon_imu.hpp"
+#include "mim_estimation/io_tools/data_reader.hpp"
+#include "mim_estimation/io_tools/non_rt_data_collector.hpp"
 
-namespace robot_estimation
+namespace mim_estimation
 {
 namespace test
 {
 class EstimatorViconImuTest
 {
     ///
-    /// \brief This class tests the robot_estimation based on IMU and Vicon
+    /// \brief This class tests the mim_estimation based on IMU and Vicon
     /// measurement
     ///
 
@@ -31,8 +31,8 @@ public:
     EstimatorViconImuTest(std::string yaml_file, std::string d_file)
     {
         /* get the parameters from the yaml file */
-        std::cout << "Creating the robot_estimation dependence..." << std::endl;
-        std::cout << "Get the robot_estimation parameters from " << yaml_file
+        std::cout << "Creating the mim_estimation dependence..." << std::endl;
+        std::cout << "Get the mim_estimation parameters from " << yaml_file
                   << std::endl;
         config_ = YAML::LoadFile(yaml_file);
         update_frequency_ = config_["task_servo_rate"].as<double>();
@@ -40,7 +40,7 @@ public:
         /* load the data set */
         std::cout << "Get the data from " << d_file << std::endl;
         data_reader_.read(d_file);
-        vicon_bse_.reset(new robot_estimation::EkfViconImu(
+        vicon_bse_.reset(new mim_estimation::EkfViconImu(
             update_frequency_, config_est_["vicon_bse"]));
         time_ = 0.0;
         get_data_indexes();
@@ -476,8 +476,8 @@ private:
     Eigen::MatrixXd error_base_pose_, error_base_quat_;
 
     // the class to test
-    std::unique_ptr<robot_estimation::EkfViconImu> vicon_bse_;
+    std::unique_ptr<mim_estimation::EkfViconImu> vicon_bse_;
 };
 
 }  // namespace test
-}  // namespace robot_estimation
+}  // namespace mim_estimation

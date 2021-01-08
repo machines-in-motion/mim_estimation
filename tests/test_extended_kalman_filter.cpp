@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
 #include <stdlib.h>
+#include <random>
 
-#include "robot_estimation/io_tools/data_reader.hpp"
-#include "robot_estimation/io_tools/non_rt_data_collector.hpp"
+#include "mim_estimation/io_tools/data_reader.hpp"
+#include "mim_estimation/io_tools/non_rt_data_collector.hpp"
 #include "simple_1d_ekf.hpp"
 
 class TestEKF : public ::testing::Test
@@ -42,8 +43,8 @@ double generate_1d_noisy_sinus(
 TEST_F(TestEKF, simple_1d_ekf_test)
 {
     // create variables
-    robot_estimation::io_tools::NonRtDataCollector dc;
-    robot_estimation::io_tools::DataReader dr;
+    mim_estimation::io_tools::NonRtDataCollector dc;
+    mim_estimation::io_tools::DataReader dr;
     Eigen::Matrix<double, 1, 1> input_pos;
     double output_pos, output_pos_ref;
     bool is_discrete = true;

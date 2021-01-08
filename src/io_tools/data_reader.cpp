@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-#include "robot_estimation/io_tools/data_reader.hpp"
+#include "mim_estimation/io_tools/data_reader.hpp"
 
 #define LLSB(x) ((x)&0xff) /*!< 32bit word byte/word swap macros */
 #define LNLSB(x) (((x) >> 8) & 0xff)
@@ -25,7 +25,7 @@
 #define LONGSWAP(x) \
     ((LLSB(x) << 24) | (LNLSB(x) << 16) | (LNMSB(x) << 8) | (LMSB(x)))
 
-namespace robot_estimation
+namespace mim_estimation
 {
 namespace io_tools
 {
@@ -190,4 +190,4 @@ void DataReader::fillVector(int row,
 // }
 
 }  // end namespace io_tools
-}  // end namespace robot_estimation
+}  // end namespace mim_estimation

@@ -16,7 +16,7 @@
 #include <complex>
 #include <iostream>
 #include <stdexcept>
-#include "robot_estimation/filtering_tools/butterworth_filter.hpp"
+#include "mim_estimation/filtering_tools/butterworth_filter.hpp"
 
 namespace standard_filters {
 

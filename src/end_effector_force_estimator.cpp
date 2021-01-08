@@ -7,13 +7,13 @@
  * @brief Computes the forces at the end-effector.
  */
 
-#include "robot_estimation/end_effector_force_estimator.hpp"
+#include "mim_estimation/end_effector_force_estimator.hpp"
 #include "pinocchio/algorithm/center-of-mass.hpp"
 #include "pinocchio/algorithm/frames.hpp"
 #include "pinocchio/algorithm/jacobian.hpp"
 #include "pinocchio/parsers/urdf.hpp"
 
-namespace robot_estimation
+namespace mim_estimation
 {
 EndEffectorForceEstimator::EndEffectorForceEstimator()
 {
@@ -80,4 +80,4 @@ void EndEffectorForceEstimator::run(const Eigen::VectorXd& joint_positions,
     }
 }
 
-}  // namespace robot_estimation
+}  // namespace mim_estimation

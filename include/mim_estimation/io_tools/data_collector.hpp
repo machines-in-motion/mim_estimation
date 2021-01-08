@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace robot_estimation
+namespace mim_estimation
 {
 namespace io_tools
 {
@@ -111,4 +111,4 @@ public:
 };
 
 }  // end namespace io_tools
-}  // end namespace robot_estimation
+}  // end namespace mim_estimation

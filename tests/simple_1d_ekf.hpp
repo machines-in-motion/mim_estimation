@@ -1,6 +1,6 @@
 #include <Eigen/Core>
-#include "robot_estimation/io_tools/non_rt_data_collector.hpp"
-#include "robot_estimation/filtering_tools/ekf.hpp"
+#include "mim_estimation/io_tools/non_rt_data_collector.hpp"
+#include "mim_estimation/filtering_tools/ekf.hpp"
 
 class SimpleEKFState : public Eigen::Matrix<double, 1, 1>
 {
@@ -104,7 +104,7 @@ public:
 
   Eigen::Matrix<double,N,1> getFilterState(void){return state_post_;}
 
-  void subscribe_to_data_collector(robot_estimation::io_tools::DataCollector& data_collector){
+  void subscribe_to_data_collector(mim_estimation::io_tools::DataCollector& data_collector){
     data_collector.addVariable(state_post_.pos_.data(), "state_pos", "m");
     data_collector.addVariable(state_pre_.pos_.data(), "state_pred_pos", "m");
     data_collector.addVariable(gain_mat_.data(), "gain", "-");
