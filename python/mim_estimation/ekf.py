@@ -35,7 +35,6 @@ class EKF:
         self.__Qb_omega =  conf.Qb_omega
         self.__R = conf.R     
         # call private methods
-        self.__init_viewer(conf.GUI) 
         self.__init_filter()
 
     #private methods
@@ -55,14 +54,6 @@ class EKF:
         self.__mu_post['bias_orientation'] = np.zeros(3, dtype=float)
         self.__mu_pre['bias_acceletation'] = np.zeros(3, dtype=float)
         self.__mu_pre['bias_orientation'] = np.zeros(3, dtype=float)
-
-    def __init_viewer(self, gui):
-        if gui == 'Gepetto':
-            Viewer = pin.visualize.GepettoVisualizer
-        elif gui == 'Meshcat':
-            Viewer = pin.visualize.MeshcatVisualizer
-        self.__viewer = Viewer(self.__rmodel, self.__robot.collision_model, 
-                                                  self.__robot.visual_model)  
     
     def __compute_base_pose_se3(self, robot_configuration):
         pin.framesForwardKinematics(self.__rmodel, self.__rdata, robot_configuration)
@@ -82,12 +73,12 @@ class EKF:
     def set_mu_post(self, mu_post):self.__mu_post = mu_post
     def set_mu_post(self, mu_pre):self.__mu_re = mu_pre
 
-    # compute end effector placements and velocities w.r.t. the world frame 
+    # compute end effector placements and velocities w.r.t. fixed base frame 
     def compute_end_effectors_FK_quantities(self, joint_positions, joint_velocities):
         # locking the base frame to the world frame 
-        q = np.zeros(7)
-        q[6] = 1.0
-        robot_configuration = np.concatenate([q, joint_positions])
+        base_pose = np.zeros(7)
+        base_pose[6] = 1.0
+        robot_configuration = np.concatenate([base_pose, joint_positions])
         robot_velocity = np.concatenate([np.zeros(6), joint_velocities])
         end_effectors_positions = {}
         end_effectors_velocities = {}
@@ -95,21 +86,19 @@ class EKF:
         for key, frame_name in (self.__end_effectors_frame_names.items()):
             frame_index = self.__rmodel.getFrameId(frame_name)
             frame_position = -self.__rdata.oMf[frame_index].translation 
-            frame_velocity = pin.getVelocity(self.__rmodel, self.__rdata, frame_index, pin.ReferenceFrame.WORLD)
+            frame_velocity = pin.getVelocity(self.__rmodel, self.__rdata, frame_index, pin.LOCAL_WORLD_ALIGNED)
             end_effectors_positions[key] = frame_position
-            end_effectors_velocities[key] = frame_velocity.vector[0:3] #only linear velocity part
+            end_effectors_velocities[key] = frame_velocity.linear #only linear velocity part
         return end_effectors_positions, end_effectors_velocities
 
     # discrete nonlinear motion model (mean of the state vector)
     def integrate_model(self, a_tilde, omega_tilde):
         dt, g = self.__dt, self.__g_vector
         mu_post = self.__mu_post
-        r_post = mu_post['base_position']
         v_post = mu_post['base_velocity']
         q_post = mu_post['base_orientation']
         b_a_post, b_omega_post = self.__mu_post['bias_acceletation'], self.__mu_post['bias_orientation'] 
-        R_post = pin.XYZQUATToSE3([r_post[0], r_post[1], r_post[2],
-                 q_post.x, q_post.y, q_post.z, q_post.w]).rotation
+        R_post = q_post.matrix()
         # IMU readings in the base frame 
         a_hat = a_tilde - b_a_post              # acceletation 
         omega_hat = omega_tilde - b_omega_post  # angular velocity 
@@ -127,12 +116,10 @@ class EKF:
         dt, g = self.__dt, self.__g_vector
         Fc = np.zeros((self.__nx, self.__nx), dtype=float) #15x15
         mu_pre = self.get_mu_pre() 
-        r_pre = mu_pre['base_position']
         q_pre = mu_pre['base_orientation']
         v_pre = mu_pre['base_velocity']
         omega_hat = self.__omega_hat
-        R_pre = pin.XYZQUATToSE3([r_pre[0], r_pre[1], r_pre[2],
-                q_pre.x, q_pre.y, q_pre.z, q_pre.w]).rotation
+        R_pre = q_pre.matrix()
         Rt_pre = R_pre.T
         #dr/ddelta_x
         Fc[0:3,3:6] = R_pre
@@ -190,14 +177,10 @@ class EKF:
         predicted_base_velocity = np.zeros(12)
         measured_base_velocity = np.zeros(12)
         dt = self.__dt
-        r_pre = self.__mu_pre['base_position']
         q_pre = self.__mu_pre['base_orientation']
-        R_pre = pin.XYZQUATToSE3([r_pre[0], r_pre[1], r_pre[2],
-                q_pre.x, q_pre.y, q_pre.z, q_pre.w]).rotation
-        r_post = self.__mu_post['base_position']
         q_post = self.__mu_post['base_orientation']
-        R_post = pin.XYZQUATToSE3([r_post[0], r_post[1], r_post[2],
-                 q_post.x, q_post.y, q_post.z, q_post.w]).rotation
+        R_pre = q_pre.matrix()
+        R_post = q_post.matrix()
         # end effectors frame positions and velocities expressed in the world frame 
         ee_placements, ee_velocities = self.compute_end_effectors_FK_quantities(joint_positions, joint_velocities)
         # compute measurement jacobian
@@ -228,10 +211,8 @@ class EKF:
     
     # update mean and covariance based on new kinematic measurements
     def update_step(self, contacts_schedule, joint_positions, joint_velocities):
-        r_pre = self.__mu_pre['base_position']
         q_pre = self.__mu_pre['base_orientation']
-        R_pre = pin.XYZQUATToSE3([r_pre[0], r_pre[1], r_pre[2],
-                q_pre.x, q_pre.y, q_pre.z, q_pre.w]).rotation
+        R_pre = q_pre.matrix()
         Hk, measurement_error = self.measurement_model(contacts_schedule, joint_positions, joint_velocities)
         Rk = self.construct_discrete_measurement_noise_covariance()
         Sk = self.compute_innovation_covariance(Hk, Rk)
