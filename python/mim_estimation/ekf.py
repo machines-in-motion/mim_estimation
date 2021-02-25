@@ -185,10 +185,10 @@ class EKF:
         ee_placements, ee_velocities = self.compute_end_effectors_FK_quantities(joint_positions, joint_velocities)
         # compute measurement jacobian
         Hk[0:3,3:6] = Hk[3:6,3:6] = Hk[6:9,3:6] = Hk[9:12,3:6] = -np.eye(3)
-        Hk[0:3,9:12] = -R_pre @ pin.skew(ee_placements['FL'])
-        Hk[3:6,9:12] = -R_pre @ pin.skew(ee_placements['FR'])
-        Hk[6:9,9:12] = -R_pre @ pin.skew(ee_placements['HL'])
-        Hk[9:12,9:12] = -R_pre @ pin.skew(ee_placements['HR'])
+        Hk[0:3,9:12] = -pin.skew(R_pre @ ee_placements['FL'])
+        Hk[3:6,9:12] = -pin.skew(R_pre @ ee_placements['FR'])
+        Hk[6:9,9:12] = -pin.skew(R_pre @ ee_placements['HL'])
+        Hk[9:12,9:12] = -pin.skew(R_pre @ ee_placements['HR'])
         i = 0
         for key, value in (contacts_schedule.items()):
             # check if foot is in contact based on contact schedule 
