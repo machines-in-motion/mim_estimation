@@ -4,37 +4,24 @@ GUI = 'Gepetto'
 
 #Frame names
 base_link_name = 'base_link'
-FL_end_effector_frame_name ='FL_ANKLE'
-FR_end_effector_frame_name = 'FR_ANKLE'
-HL_end_effector_frame_name = 'HL_ANKLE'
-HR_end_effector_frame_name = 'HR_ANKLE'
+end_effectors_frame_names = {'FL':'FL_ANKLE', 'FR':'FR_ANKLE', 'HL':'HL_ANKLE', 'HR':'HR_ANKLE'}
 
 #gravity vector
 g_vector = np.zeros(3)
 g_vector[2] = -9.81
 dt = 0.1
 
-#imu offset?
-
 #noise covariances (TO-BE-TUNED)
 #prediction noise
-var_qf = np.array([0.01**2, 0.01**2, 0.01**2])
-var_qw = np.array([0.01**2, 0.01**2, 0.01**2])
-var_q_p1 = np.array([0.01**2, 0.01**2, 0.01**2])
-var_q_p2 = np.array([0.01**2, 0.01**2, 0.01**2])
-var_q_p3 = np.array([0.01**2, 0.01**2, 0.01**2])
-var_q_p4 = np.array([0.01**2, 0.01**2, 0.01**2])
-var_q_bf = np.array([0.01**2, 0.01**2, 0.01**2])
-var_q_bw = np.array([0.01**2, 0.01**2, 0.01**2])
+eta_a = np.array([0.01**2, 0.01**2, 0.01**2])
+eta_omega = np.array([0.01**2, 0.01**2, 0.01**2])
+eta_b_a = np.array([0.01**2, 0.01**2, 0.01**2])
+eta_b_omega = np.array([0.01**2, 0.01**2, 0.01**2])
+Q_a = np.diag(eta_a)
+Qb_a = np.diag(eta_b_a)
+Q_omega = np.diag(eta_omega)
+Qb_omega = np.diag(eta_b_omega)
 
-Qf = np.dot(np.eye(3), var_qf)
-Qw = np.dot(np.eye(3), var_qw)
-Q_p1 = np.dot(np.eye(3), var_q_p1)
-Q_p2 = np.dot(np.eye(3), var_q_p2)
-Q_p3 = np.dot(np.eye(3), var_q_p3)
-Q_p4 = np.dot(np.eye(3), var_q_p4)
-Q_bf = np.dot(np.eye(3), var_q_bf)
-Q_bw = np.dot(np.eye(3), var_q_bw)
+# measurement noise
+R = 0.01*(np.eye(12))
 
-#feet position noise based on slippage and kinematics errors (TO-BE-TUNED)
-R = 0.01*np.eye(12) 
