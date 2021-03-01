@@ -1,3 +1,9 @@
+"""
+License BSD-3-Clause
+Copyright (c) 2021, New York University and Max Planck Gesellschaft.
+Author: Ahmad Gazar
+"""
+
 import example_robot_data as robex
 from pinocchio import Quaternion
 from numpy.linalg import inv
