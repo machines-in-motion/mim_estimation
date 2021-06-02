@@ -1,7 +1,7 @@
 # Prerequisites
 *.d
 
-# Compiled Object files
+# Compiled Object files_squatting
 *.slo
 *.lo
 *.o
@@ -16,7 +16,7 @@
 *.dylib
 *.dll
 
-# Fortran module files
+# Fortran module files_squatting
 *.mod
 *.smod
 
@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# python
+*__pycache__*
+
+# demos data
+demos/files_*
