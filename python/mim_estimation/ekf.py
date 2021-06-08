@@ -11,7 +11,6 @@ from numpy import random
 import pinocchio as pin
 import numpy as np
 from mim_estimation import conf
-from scipy.spatial.transform import Rotation as Rot
 
 # plus and minus operators on SO3
 def box_plus(R, theta): return R @ pin.exp(theta)
@@ -74,7 +73,7 @@ class EKF:
     def get_robot_model(self): return self.__rmodel
     def get_robot_data(self): return self.__rdata
     def get_dt(self): return self.__dt
-    def get_g_vector(self): return self.__g
+    def get_g_vector(self): return self.__g_vector
     def get_mu_pre(self): return self.__mu_pre
     def get_mu_post(self): return self.__mu_post
 
@@ -206,7 +205,6 @@ class EKF:
                                                   Hk[i: i+3, 12:15] @ self.__mu_pre['bias_orientation']
                 measured_base_velocity[i: i+3] = -R_pre.T @ ee_velocities[key] -\
                                                  pin.skew(self.__omega_hat) @ R_pre.T @ ee_positions[key]
-                # measured_base_velocity[i: i + 3] = R_pre.T @ ee_velocities[key]
             else:
                 predicted_base_velocity[i: i+3] = np.zeros(3)
                 measured_base_velocity[i: i+3] = np.zeros(3)
@@ -233,95 +231,6 @@ class EKF:
         self.__mu_post['base_orientation'] = Quaternion(box_plus(R_pre, delta_x[6:9]))
         self.__mu_post['bias_acceleration'] = self.__mu_pre['bias_acceleration'] + delta_x[9:12]
         self.__mu_post['bias_orientation'] = self.__mu_pre['bias_orientation'] + delta_x[12:15]
-
-        # ---------- reseting the EKF ---------- #
-        G = np.eye(15, 15)
-        G[6:9, 6:9] = np.eye(3, 3) - pin.skew(0.5 * delta_x[6:9])
-        self.__Sigma_post = G @ self.__Sigma_post @ G.T
-
-    # ---------------------------------------------------------------------------------------------------------------- #
-    # def ee_FK(self, joint_positions):
-    #     # locking the base frame to the world frame
-    #     base_pose = np.zeros(7)
-    #     base_pose[6] = 1.0
-    #     robot_configuration = np.concatenate([base_pose, joint_positions])
-    #     end_effectors_positions = {}
-    #     pin.forwardKinematics(self.__rmodel, self.__rdata, robot_configuration)
-    #     for key, frame_name in (self.__end_effectors_frame_names.items()):
-    #         frame_index = self.__rmodel.getFrameId(frame_name)
-    #         frame_position = self.__rdata.oMf[frame_index].translation
-    #         end_effectors_positions[key] = frame_position
-    #     return end_effectors_positions
-    #
-    # def ee_FK_from_world(self, base_configuration, joint_positions):
-    #     robot_configuration = np.concatenate([base_configuration, joint_positions])
-    #     ee_pose = {}
-    #     pin.forwardKinematics(self.__rmodel, self.__rdata, robot_configuration)
-    #     pin.framesForwardKinematics(self.__rmodel, self.__rdata, robot_configuration)
-    #     for key, frame_name in (self.__end_effectors_frame_names.items()):
-    #         frame_index = self.__rmodel.getFrameId(frame_name)
-    #         ee_pose[key] = self.__rdata.oMf[frame_index].translation
-    #     return ee_pose
-    #
-    # # measurement model using the feet position
-    # def measurement_model(self, contacts_schedule, base_configuration, joint_positions, joint_velocities):
-    #     Hk = np.zeros((12, self.__nx))  # 12x15
-    #     predicted_foot_position = np.zeros(12)
-    #     measured_foot_position = np.zeros(12)
-    #     p = self.__mu_pre['base_position']
-    #     q_pre = self.__mu_pre['base_orientation']
-    #     R_pre = q_pre.matrix()
-    #     # end effectors frame positions and velocities from base expressed in the world frame
-    #     ee_positions = self.ee_FK(joint_positions)
-    #     # end effectors positions from world
-    #     ee_positions_world = self.ee_FK_from_world(base_configuration, joint_positions)
-    #     # compute measurement jacobian
-    #     Hk[0:3, 0:3] = Hk[3:6, 0:3] = Hk[6:9, 0:3] = Hk[9:12, 0:3] = -R_pre.T
-    #     Hk[0:3, 6:9] = pin.skew(R_pre.T @ (ee_positions_world["FL"] - p))
-    #     Hk[3:6, 6:9] = pin.skew(R_pre.T @ (ee_positions_world["FR"] - p))
-    #     Hk[6:9, 6:9] = pin.skew(R_pre.T @ (ee_positions_world["HL"] - p))
-    #     Hk[9:12, 6:9] = pin.skew(R_pre.T @ (ee_positions_world["HR"] - p))
-    #     i = 0
-    #     for key, value in (contacts_schedule.items()):
-    #         if value:
-    #             # theta = R_pre.T @ (ee_positions_world[key] - p)
-    #             # R_plus = box_plus(R_pre, theta)
-    #             # q = Quaternion(R_plus)
-    #             # euler_angels = Rot.from_quat([q.x, q.y, q.z, q.w]).as_euler('xyz')
-    #             predicted_foot_position[i: i+3] = -R_pre.T @ p #+ euler_angels
-    #             measured_foot_position[i: i+3] = R_pre.T @ ee_positions[key]
-    #         else:
-    #             predicted_foot_position[i: i+3] = np.zeros(3)
-    #             measured_foot_position[i: i+3] = np.zeros(3)
-    #         i += 3
-    #     error = measured_foot_position - predicted_foot_position
-    #     return Hk, error
-    #
-    # def compute_innovation_covariance(self, Hk, Rk):
-    #     return (Hk @ self.__Sigma_pre @ Hk.T) + Rk
-    #
-    # # update mean and covariance based on new kinematic measurements
-    # def update_step(self, contacts_schedule, base_configuration, joint_positions, joint_velocities):
-    #     q_pre = self.__mu_pre['base_orientation']
-    #     R_pre = q_pre.matrix()
-    #     Hk, measurement_error = self.measurement_model(contacts_schedule, base_configuration,
-    #                                                    joint_positions, joint_velocities)
-    #     Rk = self.construct_discrete_measurement_noise_covariance()
-    #     Sk = self.compute_innovation_covariance(Hk, Rk)
-    #     K = (self.__Sigma_pre @ Hk.T) @ inv(Sk)  # kalman gain
-    #     delta_x = K @ measurement_error
-    #     self.__Sigma_post = (np.eye(self.__nx) - (K @ Hk)) @ self.__Sigma_pre
-    #     self.__mu_post['base_position'] = self.__mu_pre['base_position'] + delta_x[0:3]
-    #     self.__mu_post['base_velocity'] = self.__mu_pre['base_velocity'] + delta_x[3:6]
-    #     self.__mu_post['base_orientation'] = Quaternion(box_plus(R_pre, delta_x[6:9]))
-    #     self.__mu_post['bias_acceleration'] = self.__mu_pre['bias_acceleration'] + delta_x[9:12]
-    #     self.__mu_post['bias_orientation'] = self.__mu_pre['bias_orientation'] + delta_x[12:15]
-    #
-    #     # ---------- reseting the EKF ---------- #
-    #     G = np.eye(15, 15)
-    #     G[6:9, 6:9] = np.eye(3, 3) - pin.skew(0.5 * delta_x[6:9])
-    #     self.__Sigma_post = G @ self.__Sigma_post @ G.T
-    # ------------------------------------------------------------------------------------------------------------- $$$$
 
 
 if __name__ == '__main__':
