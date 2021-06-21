@@ -36,6 +36,8 @@ class EKF:
                                         'bias_acceleration', 'bias_orientation'])
         self.__Sigma_pre = np.zeros((self.__nx, self.__nx))  # 15x15
         self.__Sigma_post = np.zeros((self.__nx, self.__nx))  # 15x15
+        self.__a_hat = np.zeros(3)
+        self.__omega_hat = np.zeros(3)
         self.__Q_a = conf.Q_a
         self.__Q_omega = conf.Q_omega
         self.__Qb_a = conf.Qb_a
@@ -46,21 +48,15 @@ class EKF:
 
     # private methods
     def __init_filter(self):
-        joint_positions = self.__init_robot_config[7:]
-        joint_velocities = np.zeros(12)
         M = self.__compute_base_pose_se3(self.__init_robot_config)
-        R_worldTobase = M.rotation
-        q = Quaternion(R_worldTobase)
+        world_R_base = M.rotation
+        q = Quaternion(world_R_base)
         q.normalize()
-        end_effectors_positions, _ = self.compute_end_effectors_FK_quantities(joint_positions, joint_velocities)
-        self.__end_effectors_positions_post = end_effectors_positions
         self.__mu_post['base_position'] = M.translation
         self.__mu_post['base_velocity'] = np.zeros(3, dtype=float)
         self.__mu_post['base_orientation'] = q
         self.__mu_post['bias_acceleration'] = np.zeros(3, dtype=float)
         self.__mu_post['bias_orientation'] = np.zeros(3, dtype=float)
-        self.__mu_pre['bias_acceleration'] = np.zeros(3, dtype=float)
-        self.__mu_pre['bias_orientation'] = np.zeros(3, dtype=float)
 
     def __compute_base_pose_se3(self, robot_configuration):
         pin.forwardKinematics(self.__rmodel, self.__rdata, robot_configuration)
@@ -81,7 +77,7 @@ class EKF:
     def set_mu_post(self, key, value): self.__mu_post[key] = value
     def set_mu_pre(self, key, value): self.__mu_pre[key] = value
 
-    # compute end effector placements and velocities w.r.t. fixed base frame
+    # compute end effector positions and velocities w.r.t. base, expressed in base
     def compute_end_effectors_FK_quantities(self, joint_positions, joint_velocities):
         # locking the base frame to the world frame
         base_pose = np.zeros(7)
@@ -91,10 +87,11 @@ class EKF:
         end_effectors_positions = {}
         end_effectors_velocities = {}
         pin.forwardKinematics(self.__rmodel, self.__rdata, robot_configuration, robot_velocity)
+        pin.framesForwardKinematics(self.__rmodel, self.__rdata, robot_configuration)
         for key, frame_name in (self.__end_effectors_frame_names.items()):
             frame_index = self.__rmodel.getFrameId(frame_name)
             frame_position = self.__rdata.oMf[frame_index].translation
-            frame_velocity = pin.getVelocity(self.__rmodel, self.__rdata, frame_index, pin.LOCAL_WORLD_ALIGNED)
+            frame_velocity = pin.getFrameVelocity(self.__rmodel, self.__rdata, frame_index, pin.LOCAL_WORLD_ALIGNED)
             end_effectors_positions[key] = frame_position
             end_effectors_velocities[key] = frame_velocity.linear  # only linear velocity part
         return end_effectors_positions, end_effectors_velocities
@@ -130,13 +127,12 @@ class EKF:
         v_pre = mu_pre['base_velocity']
         omega_hat = self.__omega_hat
         R_pre = q_pre.matrix()
-        Rt_pre = R_pre.T
         # dr/ddelta_x
         Fc[0:3, 3:6] = R_pre
         Fc[0:3, 6:9] = -R_pre @ pin.skew(v_pre)
         # dv/ddelta_x
         Fc[3:6, 3:6] = -pin.skew(omega_hat)
-        Fc[3:6, 6:9] = pin.skew(Rt_pre @ g)
+        Fc[3:6, 6:9] = pin.skew(R_pre.T @ g)
         Fc[3:6, 9:12] = -np.eye(3)
         Fc[3:6, 12:15] = -pin.skew(v_pre)
         # dtheta/ddelta_x
@@ -187,30 +183,25 @@ class EKF:
         Hk = np.zeros((12, self.__nx))  # 12x15
         predicted_base_velocity = np.zeros(12)
         measured_base_velocity = np.zeros(12)
-        q_pre = self.__mu_pre['base_orientation']
-        R_pre = q_pre.matrix()
         # end effectors frame positions and velocities expressed in the world frame
         ee_positions, ee_velocities = self.compute_end_effectors_FK_quantities(joint_positions, joint_velocities)
         # compute measurement jacobian
-        Hk[0:3, 3:6] = Hk[3:6, 3:6] = Hk[6:9, 3:6] = Hk[9:12, 3:6] = -np.eye(3)
-        Hk[0:3, 12:15] = -pin.skew(R_pre.T @ ee_positions['FL'])
-        Hk[3:6, 12:15] = -pin.skew(R_pre.T @ ee_positions['FR'])
-        Hk[6:9, 12:15] = -pin.skew(R_pre.T @ ee_positions['HL'])
-        Hk[9:12, 12:15] = -pin.skew(R_pre.T @ ee_positions['HR'])
+        Hk[0:3, 3:6] = Hk[3:6, 3:6] = Hk[6:9, 3:6] = Hk[9:12, 3:6] = np.eye(3)
+        Hk[0:3, 12:15] = pin.skew(ee_positions['FL'])
+        Hk[3:6, 12:15] = pin.skew(ee_positions['FR'])
+        Hk[6:9, 12:15] = pin.skew(ee_positions['HL'])
+        Hk[9:12, 12:15] = pin.skew(ee_positions['HR'])
         i = 0
         for key, value in (contacts_schedule.items()):
             # check if foot is in contact based on contact schedule
             if value:
-                predicted_base_velocity[i: i+3] = Hk[i: i+3, 3:6] @ self.__mu_pre['base_velocity'] + \
-                                                  Hk[i: i+3, 12:15] @ self.__mu_pre['bias_orientation']
-                measured_base_velocity[i: i+3] = -R_pre.T @ ee_velocities[key] -\
-                                                 pin.skew(self.__omega_hat) @ R_pre.T @ ee_positions[key]
+                predicted_base_velocity[i: i+3] = self.__mu_pre['base_velocity']
+                measured_base_velocity[i: i+3] = -ee_velocities[key] - pin.skew(self.__omega_hat) @ ee_positions[key]
             else:
                 predicted_base_velocity[i: i+3] = np.zeros(3)
                 measured_base_velocity[i: i+3] = np.zeros(3)
             i += 3
         error = measured_base_velocity - predicted_base_velocity
-        self.__end_effectors_positions_post = ee_positions
         return Hk, error
 
     def compute_innovation_covariance(self, Hk, Rk):

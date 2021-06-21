@@ -24,5 +24,5 @@ Qb_a = np.diag(eta_b_a)
 Qb_omega = np.diag(eta_b_omega)
 
 # measurement noise
-R = 1e-5 *(np.eye(12))
-
+R = np.zeros((12, 12), dtype=float)
+np.fill_diagonal(R, np.array([1e-5, 1e-5, 1e-8]))

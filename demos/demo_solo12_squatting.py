@@ -101,12 +101,6 @@ def demo(robot_name, sim_time):
     )
     robot_leg_ctrl = RobotImpedanceController(robot, config_file)
 
-    # --------------- Can set all the noise terms of IMU to zero here ---------------#
-    # robot.base_imu_accel_thermal_noise = 0  # m/s^2/sqrt(Hz)
-    # robot.base_imu_gyro_thermal_noise = 0  # rad/s/sqrt(Hz)
-    # robot.base_imu_accel_bias_noise = 0  # m/s^3/sqrt(Hz)
-    # robot.base_imu_gyro_bias_noise = 0  # rad/s^2/sqrt(Hz)
-
     # initialize vectors for data collecting
     base_pos = np.zeros((T, 3), float)
     base_vel = np.zeros((T, 3), float)
@@ -122,7 +116,7 @@ def demo(robot_name, sim_time):
     for i in range(T):
         # Step the simulator.
         env.step(
-            sleep=True
+            sleep=False
         )  # You can sleep here if you want to slow down the replay
         # Read the final state and forces after the stepping.
         q, dq = robot.get_state()
@@ -149,6 +143,7 @@ def demo(robot_name, sim_time):
         # EKF prediction step
         solo_ekf.integrate_model(robot.get_base_imu_linacc(), robot.get_base_imu_angvel())
         solo_ekf.prediction_step()
+
         # EKF update step with all feet in contact
         contacts_schedule = {'FL': True, 'FR': True, 'HL': True, 'HR': True}
         solo_ekf.update_step(contacts_schedule, q[7:], dq[6:])
@@ -168,7 +163,7 @@ def demo(robot_name, sim_time):
     return base_pos, base_vel, base_pos_ekf, base_vel_ekf, rpy_base, rpy_base_ekf
 
 def plot(x, y, x_legend, y_legend, title):
-    t = np.arange(simulation_ime)
+    t = np.arange(simulation_time)
     string = "XYZ"
     for i in range(3):
         plt.subplot(int('31'+str(i+1)))
@@ -199,8 +194,8 @@ if __name__ == "__main__":
         robot_name = "solo"
 
     # Run the demo
-    simulation_ime = 10000  # ms
-    base_pos, base_vel, base_pos_ekf, base_vel_ekf, rpy_base, rpy_base_ekf = demo("solo", simulation_ime)
+    simulation_time = 10000 # ms
+    base_pos, base_vel, base_pos_ekf, base_vel_ekf, rpy_base, rpy_base_ekf = demo("solo", simulation_time)
 
     # Plot the results
     plot(base_pos, base_pos_ekf, "Squatting", "EKF", "Base_Position")
