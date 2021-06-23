@@ -38,6 +38,9 @@ class EKF:
         self.__Sigma_post = np.zeros((self.__nx, self.__nx))  # 15x15
         self.__a_hat = np.zeros(3)
         self.__omega_hat = np.zeros(3)
+        self.__omega_base_prev = np.zeros(3)
+        self.__base_angacc = np.zeros(3)
+        self.__SE3_imu_in_base = pin.SE3.Identity()
         self.__Q_a = conf.Q_a
         self.__Q_omega = conf.Q_omega
         self.__Qb_a = conf.Qb_a
@@ -76,6 +79,9 @@ class EKF:
     # mutators (use only if you know what you are doing)
     def set_mu_post(self, key, value): self.__mu_post[key] = value
     def set_mu_pre(self, key, value): self.__mu_pre[key] = value
+    def set_SE3_imu_in_base(self, rotation, translation):
+        self.__SE3_imu_in_base.rotation = rotation
+        self.__SE3_imu_in_base.translation = translation
 
     # compute end effector positions and velocities w.r.t. base, expressed in base
     def compute_end_effectors_FK_quantities(self, joint_positions, joint_velocities):
@@ -104,9 +110,18 @@ class EKF:
         q_post = mu_post['base_orientation']
         b_a_post, b_omega_post = self.__mu_post['bias_acceleration'], self.__mu_post['bias_orientation']
         R_post = q_post.matrix()
+        # compute base acceleration numerically
+        rot_imu_to_base = self.__SE3_imu_in_base.rotation
+        r_base_to_imu_in_base = self.__SE3_imu_in_base.translation
+        omega_base = rot_imu_to_base @ (omega_tilde - b_omega_post)
+        self.__base_angacc = (1.0 / dt) * (omega_base - self.__omega_base_prev)
+        self.__omega_base_prev = omega_base
+        a_base_in_base = rot_imu_to_base @ (a_tilde - b_a_post) + np.cross(self.__base_angacc, -r_base_to_imu_in_base) + \
+                 np.cross(omega_base, np.cross(omega_base, -r_base_to_imu_in_base))
         # IMU readings in the base frame
-        a_hat = a_tilde - b_a_post  # acceleration
-        omega_hat = omega_tilde - b_omega_post  # angular velocity
+        a_hat = a_base_in_base  # acceleration
+        omega_hat = omega_base  # angular velocity
+
         R_pre = box_plus(R_post, omega_hat * self.__dt)
         q_pre = Quaternion(R_pre)
         q_pre.normalize()

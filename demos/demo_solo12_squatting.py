@@ -109,8 +109,9 @@ def demo(robot_name, sim_time):
     rpy_base = np.zeros((T, 3), float)
     rpy_base_ekf = np.zeros((T, 3), float)
 
-    # Create EKF instance
+    # Create EKF instance and set the SE3 from IMU to Base
     solo_ekf = EKF(conf)
+    solo_ekf.set_SE3_imu_in_base(robot.rot_base_to_imu.T , robot.r_base_to_imu)
 
     # Run the simulator for the trajectory
     for i in range(T):
@@ -133,7 +134,7 @@ def demo(robot_name, sim_time):
         # passing torques to the robot
         robot.send_joint_command(tau)
 
-    # -------------- Run the EKF -------------- #
+        # -------------- Run the EKF -------------- #
         # Set the initial values of EKF
         if i == 0:
             solo_ekf.set_mu_post("base_position", q[:3])
@@ -194,7 +195,7 @@ if __name__ == "__main__":
         robot_name = "solo"
 
     # Run the demo
-    simulation_time = 10000 # ms
+    simulation_time = 5000 # ms
     base_pos, base_vel, base_pos_ekf, base_vel_ekf, rpy_base, rpy_base_ekf = demo("solo", simulation_time)
 
     # Plot the results
