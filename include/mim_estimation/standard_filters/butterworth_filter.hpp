@@ -13,6 +13,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 
+namespace mim_estimation{
 namespace standard_filters{
 
   /*! 
@@ -114,6 +115,7 @@ namespace standard_filters{
       //! matrices to store past estimates and measurements for filtering
       Eigen::Matrix<double, _Rows, _Order+1> measurements_mat_, states_mat_;
   };
-}
+} // namespace mim_estimation
+} // namespace standard_filters
 
-#include "mim_estimation/filtering_tools/butterworth_filter.hxx"
+#include "mim_estimation/standard_filters/butterworth_filter.hxx"

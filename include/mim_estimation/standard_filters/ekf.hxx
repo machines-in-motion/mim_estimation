@@ -6,14 +6,13 @@
  * @brief Implements the EKF templated class.
  */
 
+#pragma once
+
 #include <fstream>
+#include "mim_estimation/standard_filters/ekf.hpp"
 
-// used here only to help the IDE (qtcreator) find the different variable
-// this include does nothing
-#include "mim_estimation/filtering_tools/ekf.hpp"
-
-#ifndef EKF_HPP_
-#define EKF_HPP_
+namespace mim_estimation{
+namespace standard_filters{
 
 template <class S, class M>
 EKF<S, M>::EKF(bool numerical_jac, bool is_discrete,
@@ -252,4 +251,5 @@ void EKF<S, M>::printDebug(void) {
 
 }
 
-#endif // EKF_HPP_
+} // namespace mim_estimation
+} // namespace standard_filters

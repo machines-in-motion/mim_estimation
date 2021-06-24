@@ -3,7 +3,7 @@
 #include <Eigen/Dense>
 #include "mim_estimation/filtering_tools/butterworth_filter.hpp"
 
-using namespace standard_filters;
+using namespace mim_estimation::standard_filters;
 
 class FilterTest : public ::testing::Test
 {

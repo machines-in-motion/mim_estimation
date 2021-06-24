@@ -6,11 +6,13 @@
  * @brief Implementation of the Extended Kalman Filter (EKF).
  */
 
-
 #pragma once
 
 #include "Eigen/Eigen"
 #include <iostream>
+
+namespace mim_estimation{
+namespace standard_filters{
 
 /**
  *  \brief This class implements an extended Kalman Filter (EKF).
@@ -259,4 +261,7 @@ public:
   unsigned lin_order_;
 };
 
-#include "mim_estimation/filtering_tools/ekf.hxx"
+} // namespace mim_estimation
+} // namespace standard_filters
+
+#include "mim_estimation/standard_filters/ekf.hxx"
