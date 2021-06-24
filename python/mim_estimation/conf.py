@@ -13,21 +13,16 @@ dt = 0.001
 
 # noise covariances (TO-BE-TUNED)
 # prediction noise
-# eta_a = np.array([0.01**2, 0.01**2, 0.01**2])
-# eta_omega = np.array([0.01**2, 0.01**2, 0.01**2])
-# eta_b_a = np.array([0.01**2, 0.01**2, 0.01**2])
-# eta_b_omega = np.array([0.01**2, 0.01**2, 0.01**2])
-# --------------------------------------------------##
 eta_a = 0.00078 ** 2 * np.array([dt, dt, dt])
 eta_omega = 0.000523 ** 2 * np.array([dt, dt, dt])
 eta_b_a = 0.0001 ** 2 * np.array([1, 1, 1])
 eta_b_omega = 0.000618 ** 2 * np.array([1, 1, 1])
-# --------------------------------------------------$$$$$
+
 Q_a = np.diag(eta_a)
 Q_omega = np.diag(eta_omega)
 Qb_a = np.diag(eta_b_a)
 Qb_omega = np.diag(eta_b_omega)
 
 # measurement noise
-R = 1e1 *(np.eye(12))
-
+R = np.zeros((12, 12), dtype=float)
+np.fill_diagonal(R, np.array([1e-5, 1e-5, 1e-8]))
