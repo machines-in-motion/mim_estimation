@@ -38,7 +38,10 @@ set(all_targets)
 
 # define the source files
 set(${PROJECT_NAME}_SRC_FILES
-    src/ekf_vicon_imu.cpp #
+    src/ekf_kin_imu.cpp #
+    # src/ekf_vicon_imu.cpp #
+    # src/ekf_kin_imu_base.cpp #
+    # src/ekf_vicon_imu_base.cpp #
     src/end_effector_force_estimator.cpp #
     src/io_tools/data_collector.cpp #
     src/io_tools/data_reader.cpp #

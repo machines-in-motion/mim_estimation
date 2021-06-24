@@ -4,7 +4,7 @@
  * @copyright Copyright (c) 2020, New York University and Max Planck
  * Gesellschaft
  *
- * @brief Implement the EkfViconImu class.
+ * @brief Implement the EkfKinImu class.
  */
 
 #include "mim_estimation/ekf_vicon_imu.hpp"
@@ -13,19 +13,19 @@
 
 namespace mim_estimation
 {
-EkfViconImu::EkfViconImu(double dt, const YAML::Node& config)
+EkfKinImu::EkfKinImu(double dt, const YAML::Node& config)
     : EKF(false, false, dt, 1), config_(config)
 {
 }
 
-void EkfViconImu::initialize(
+void EkfKinImu::initialize(
     const Eigen::Ref<const Eigen::Matrix4d>& base_pose_data)
 {
     initialize(base_pose_data.topRightCorner<3, 1>(),
                base_pose_data.topLeftCorner<3, 3>());
 }
 
-void EkfViconImu::initialize(
+void EkfKinImu::initialize(
     const Eigen::Ref<const Eigen::Vector3d>& base_pose,
     const Eigen::Ref<const Eigen::Matrix3d>& base_ori_mat)
 {
@@ -33,7 +33,7 @@ void EkfViconImu::initialize(
     initialize(base_pose, base_quat_vicon_);
 }
 
-void EkfViconImu::initialize(const Eigen::Ref<const Eigen::Vector3d>& base_pose,
+void EkfKinImu::initialize(const Eigen::Ref<const Eigen::Vector3d>& base_pose,
                              const Eigen::Quaterniond& base_quat)
 {
     // Load noise and other config parameters from YAML file:
@@ -126,7 +126,7 @@ void EkfViconImu::initialize(const Eigen::Ref<const Eigen::Vector3d>& base_pose,
     frame_quality_ = 0;
 }
 
-void EkfViconImu::update(
+void EkfKinImu::update(
     const Eigen::Vector3d& accelerometer,
     const Eigen::Vector3d& gyroscope,
     const Eigen::Ref<const Eigen::Matrix4d>& base_pose_data,
@@ -140,7 +140,7 @@ void EkfViconImu::update(
            is_new_frame);
 }
 
-void EkfViconImu::update(const Eigen::Vector3d& accelerometer,
+void EkfKinImu::update(const Eigen::Vector3d& accelerometer,
                          const Eigen::Vector3d& gyroscope,
                          const Eigen::Ref<const Eigen::Vector3d>& base_pose,
                          const Eigen::Quaterniond& base_quat,
@@ -161,7 +161,7 @@ void EkfViconImu::update(const Eigen::Vector3d& accelerometer,
     updateFilter(is_new_frame);
 }
 
-Eigen::Matrix<double, ViconIMUState::state_dim, 1> EkfViconImu::processModel(
+Eigen::Matrix<double, ViconIMUState::state_dim, 1> EkfKinImu::processModel(
     ViconIMUState& s)
 {
     Eigen::Matrix<double, ViconIMUState::state_dim, 1> out;
@@ -182,7 +182,7 @@ Eigen::Matrix<double, ViconIMUState::state_dim, 1> EkfViconImu::processModel(
     return out;
 }
 
-void EkfViconImu::formProcessJacobian(void)
+void EkfKinImu::formProcessJacobian(void)
 {
     proc_jac_.setZero();
     Eigen::Matrix3d world_R_base = state_post_.imu_quat.toRotationMatrix();
@@ -199,7 +199,7 @@ void EkfViconImu::formProcessJacobian(void)
     return;
 }
 
-void EkfViconImu::formProcessNoise(void)
+void EkfKinImu::formProcessNoise(void)
 {
     proc_noise_.block(3, 3, 3, 3) =
         q_proc_accel_ * q_proc_accel_ * Eigen::MatrixXd::Identity(3, 3);
@@ -213,11 +213,11 @@ void EkfViconImu::formProcessNoise(void)
 }
 
 /**
- * @brief EkfViconImu::formNoiseJacobian
+ * @brief EkfKinImu::formNoiseJacobian
  *
  * The vector of the noise is : [accel gyro accel_bias gyro_bias]^T
  */
-void EkfViconImu::formNoiseJacobian(void)
+void EkfKinImu::formNoiseJacobian(void)
 {
     if (is_discrete_)
     {
@@ -241,7 +241,7 @@ void EkfViconImu::formNoiseJacobian(void)
     }
 }
 
-Eigen::Matrix<double, ViconIMUMeasure::meas_dim, 1> EkfViconImu::measModel(
+Eigen::Matrix<double, ViconIMUMeasure::meas_dim, 1> EkfKinImu::measModel(
     ViconIMUState& s)
 {
     // Measurement is simply the imu position and orientation from Vicon:
@@ -252,14 +252,14 @@ Eigen::Matrix<double, ViconIMUMeasure::meas_dim, 1> EkfViconImu::measModel(
     return out;
 }
 
-void EkfViconImu::formMeasJacobian(void)
+void EkfKinImu::formMeasJacobian(void)
 {
     meas_jac_.block(0, 0, 3, 3) = Eigen::Matrix<double, 3, 3>::Identity();
     meas_jac_.block(3, 6, 3, 3) = Eigen::Matrix<double, 3, 3>::Identity();
     return;
 }
 
-void EkfViconImu::formMeasNoise(void)
+void EkfKinImu::formMeasNoise(void)
 {
     meas_noise_.block(0, 0, 3, 3) =
         q_meas_base_pos_ * q_meas_base_pos_ * Eigen::MatrixXd::Identity(3, 3);
@@ -268,7 +268,7 @@ void EkfViconImu::formMeasNoise(void)
     return;
 }
 
-void EkfViconImu::formActualMeas(void)
+void EkfKinImu::formActualMeas(void)
 {
     /*tflayols: [done?] need to translate vicon measurement to express IMU
      * position*/
