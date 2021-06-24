@@ -14,7 +14,7 @@
 namespace mim_estimation
 {
 EkfViconImu::EkfViconImu(double dt, const YAML::Node& config)
-    : config_(config), EKF(false, false, dt, 1)
+    : EKF(false, false, dt, 1), config_(config)
 {
 }
 

@@ -2,6 +2,8 @@
 #include "mim_estimation/io_tools/non_rt_data_collector.hpp"
 #include "mim_estimation/filtering_tools/ekf.hpp"
 
+using namespace mim_estimation::standard_filters;
+
 class SimpleEKFState : public Eigen::Matrix<double, 1, 1>
 {
 public:

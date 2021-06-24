@@ -11,8 +11,13 @@
  * @todo Explain here the math a little at least or add ref.
  */
 
+#pragma once
+
 #include "Eigen/Eigen"
 #include <iostream>
+
+namespace mim_estimation{
+namespace standard_filters{
 
 template <class S, class M> 
 class UKF {
@@ -76,4 +81,7 @@ public:
   double dt_;
 };
 
-#include "mim_estimation/filtering_tools/ukf.hxx"
+} // namespace mim_estimation
+} // namespace standard_filters
+
+#include "mim_estimation/standard_filters/ukf.hxx"

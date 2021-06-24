@@ -16,9 +16,10 @@
 #include <complex>
 #include <iostream>
 #include <stdexcept>
-#include "mim_estimation/filtering_tools/butterworth_filter.hpp"
+#include "mim_estimation/standard_filters/butterworth_filter.hpp"
 
-namespace standard_filters {
+namespace mim_estimation{
+namespace standard_filters{
 
   template<typename _Scalar, int _Rows, int _Order>
   ButterworthFilter<Eigen::Matrix< _Scalar, _Rows, 1, Eigen::ColMajor, _Rows, 1 >, _Order>::ButterworthFilter() : initialized_filter_(false)
@@ -200,4 +201,5 @@ namespace standard_filters {
     }
   }
 
-}
+} // namespace mim_estimation
+} // namespace standard_filters

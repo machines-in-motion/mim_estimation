@@ -14,7 +14,7 @@
 #include "pinocchio/spatial/explog-quaternion.hpp"
 #include "yaml_utils/yaml_cpp_fwd.hpp"
 
-#include "mim_estimation/filtering_tools/ekf.hpp"
+#include "mim_estimation/standard_filters/ekf.hpp"
 
 // Option to initialise to zero x,y,z and yaw from vicon at startup
 #define ZERO_INITIAL_STATE
@@ -142,6 +142,7 @@ public:
         out << s.accel_bias << std::endl << std::endl;
         out << "Gyroscope Bias" << std::endl;
         out << s.gyro_bias << std::endl << std::endl;
+        return out;
     }
 
     Eigen::Vector3d imu_pos;
@@ -229,6 +230,7 @@ public:
         out << "z:" << m.meas_imu_quat.z() << " ";
         out << "w:" << m.meas_imu_quat.w() << " ";
         out << std::endl << std::endl;
+        return out;
     }
 
     Eigen::Vector3d meas_imu_pos;
@@ -237,7 +239,7 @@ public:
     Eigen::MatrixXd meas_cov;
 };
 
-class EkfViconImu : public EKF<ViconIMUState, ViconIMUMeasure>
+class EkfViconImu : public standard_filters::EKF<ViconIMUState, ViconIMUMeasure>
 {
 public:
     EkfViconImu(double dt, const YAML::Node& config);
