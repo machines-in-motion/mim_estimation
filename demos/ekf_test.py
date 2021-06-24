@@ -10,19 +10,21 @@ def read_data(file_name):
     data = np.loadtxt(file_name)
     return data[:T, 1:]
 
+
 def plot(x, y, x_label, y_label, title):
     t = np.arange(T)
     string = "XYZ"
     for i in range(3):
-        plt.subplot(int('31'+str(i+1)))
-        plt.plot(t, x[:, i], 'b', label=x_label, linewidth=0.75)
-        plt.plot(t, y[:, i], 'r--', label=y_label, linewidth=0.75)
+        plt.subplot(int("31" + str(i + 1)))
+        plt.plot(t, x[:, i], "b", label=x_label, linewidth=0.75)
+        plt.plot(t, y[:, i], "r--", label=y_label, linewidth=0.75)
         plt.ylabel("_" + string[i] + "_")
         plt.grid()
-    plt.legend(loc='upper right', shadow=True, fontsize='large')
+    plt.legend(loc="upper right", shadow=True, fontsize="large")
     plt.xlabel("time(ms)")
     plt.suptitle(title)
     plt.show()
+
 
 def plot_results(lable):
     base_pos = np.loadtxt(path + "base_pos")
@@ -35,6 +37,7 @@ def plot_results(lable):
     plot(base_vel, base_vel_ekf, lable, "ekf", "Velocity")
     plot(euler_angels_real, euler_angels_ekf, "wobbling", "ekf", "Rotation")
 
+
 def run_ekf():
     # Read the data from wobbling motion
     imu_lin_acc = read_data(path + "dg_solo12-imu_accelerometer.dat")
@@ -42,12 +45,14 @@ def run_ekf():
     joint_positions = read_data(path + "dg_solo12-joint_positions.dat")
     joint_velocities = read_data(path + "dg_solo12-joint_velocities.dat")
     base_position = read_data(path + "dg_vicon_entity-solo12_position.dat")
-    base_velocity_body = read_data(path + "dg_vicon_entity-solo12_velocity_body.dat")
+    base_velocity_body = read_data(
+        path + "dg_vicon_entity-solo12_velocity_body.dat"
+    )
 
     # Create EKF instance and initialise the position
     solo_ekf = EKF(conf)
     solo_ekf.set_mu_post("base_position", base_position[0, 0:3])
-    solo_ekf.set_mu_post('base_orientation', Quaternion(base_position[0, 3:]))
+    solo_ekf.set_mu_post("base_orientation", Quaternion(base_position[0, 3:]))
     base_pos_ekf = np.zeros((T, 3), float)
     base_vel_ekf = np.zeros((T, 3), float)
     euler_angels_ekf = np.zeros((T, 3), float)
@@ -58,16 +63,22 @@ def run_ekf():
         solo_ekf.prediction_step()
 
         # Run the EKF update step
-        contacts_schedule = {'FL': True, 'FR': True, 'HL': True, 'HR': True}
+        contacts_schedule = {"FL": True, "FR": True, "HL": True, "HR": True}
         # contacts_schedule = {'FL': False, 'FR': False, 'HL': False, 'HR': False}
-        solo_ekf.update_step(contacts_schedule, joint_positions[i, :], joint_velocities[i, :])
+        solo_ekf.update_step(
+            contacts_schedule, joint_positions[i, :], joint_velocities[i, :]
+        )
         # solo_ekf.update_step(contacts_schedule, base_position[i, :], joint_positions[i, :], joint_velocities[i, :])
         base_state_post = solo_ekf.get_mu_post()
         base_pos_ekf[i, :] = base_state_post.get("base_position")
         base_vel_ekf[i, :] = base_state_post.get("base_velocity")
         q = base_state_post.get("base_orientation")
-        euler_angels_ekf[i, :] = Rot.from_quat([q.x, q.y, q.z, q.w]).as_euler('xyz', degrees=True)
-        euler_angels_real[i, :] = Rot.from_quat(base_position[i, 3:]).as_euler('xyz', degrees=True)
+        euler_angels_ekf[i, :] = Rot.from_quat([q.x, q.y, q.z, q.w]).as_euler(
+            "xyz", degrees=True
+        )
+        euler_angels_real[i, :] = Rot.from_quat(base_position[i, 3:]).as_euler(
+            "xyz", degrees=True
+        )
     np.savetxt(path + "base_pos", base_position)
     np.savetxt(path + "base_vel", base_velocity_body)
     np.savetxt(path + "base_pos_ekf", base_pos_ekf)
