@@ -1,10 +1,16 @@
 import numpy as np
-robot_name = 'solo12'
-GUI = 'Gepetto'
+
+robot_name = "solo12"
+GUI = "Gepetto"
 
 # Frame names
-base_link_name = 'base_link'
-end_effectors_frame_names = {'FL': 'FL_ANKLE', 'FR': 'FR_ANKLE', 'HL': 'HL_ANKLE', 'HR': 'HR_ANKLE'}
+base_link_name = "base_link"
+end_effectors_frame_names = {
+    "FL": "FL_ANKLE",
+    "FR": "FR_ANKLE",
+    "HL": "HL_ANKLE",
+    "HR": "HR_ANKLE",
+}
 
 # gravity vector
 g_vector = np.zeros(3)

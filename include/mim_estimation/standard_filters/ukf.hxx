@@ -11,9 +11,10 @@
 
 #include "mim_estimation/standard_filters/ukf.hpp"
 
-namespace mim_estimation{
-namespace standard_filters{
-
+namespace mim_estimation
+{
+namespace standard_filters
+{
 template <class S, class M>
 UKF<S, M>::UKF(bool numerical_jac, bool is_discrete, bool update_on, double dt)
 {
@@ -221,5 +222,5 @@ void UKF<S, M>::printDebug(void)
               << std::endl;
 }
 
-} // namespace mim_estimation
-} // namespace standard_filters
+}  // namespace standard_filters
+}  // namespace mim_estimation

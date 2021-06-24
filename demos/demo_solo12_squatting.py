@@ -16,6 +16,7 @@ import mim_estimation.conf as conf
 import matplotlib.pyplot as plt
 import pinocchio as pin
 
+
 def demo(robot_name, sim_time):
 
     # Create a Pybullet simulation environment
@@ -72,8 +73,12 @@ def demo(robot_name, sim_time):
     amplitude = [0.0, 0.0, 0.05]  # m
     for j in range(T):
         for i in range(3):
-            x_com[j, i] = x_com[0, i] + amplitude[i] * np.sin(2 * np.pi * j / period[i])
-            xd_com[j, i] = amplitude[i] * np.cos(2 * np.pi * j / period[i]) * 2 * np.pi
+            x_com[j, i] = x_com[0, i] + amplitude[i] * np.sin(
+                2 * np.pi * j / period[i]
+            )
+            xd_com[j, i] = (
+                amplitude[i] * np.cos(2 * np.pi * j / period[i]) * 2 * np.pi
+            )
 
     # The base should be flat.
     x_ori = [0.0, 0.0, 0.0, 1.0]
@@ -111,7 +116,7 @@ def demo(robot_name, sim_time):
 
     # Create EKF instance and set the SE3 from IMU to Base
     solo_ekf = EKF(conf)
-    solo_ekf.set_SE3_imu_in_base(robot.rot_base_to_imu.T , robot.r_base_to_imu)
+    solo_ekf.set_SE3_imu_in_base(robot.rot_base_to_imu.T, robot.r_base_to_imu)
 
     # Run the simulator for the trajectory
     for i in range(T):
@@ -142,11 +147,13 @@ def demo(robot_name, sim_time):
             solo_ekf.set_mu_post("base_orientation", pin.Quaternion(q[3:7]))
 
         # EKF prediction step
-        solo_ekf.integrate_model(robot.get_base_imu_linacc(), robot.get_base_imu_angvel())
+        solo_ekf.integrate_model(
+            robot.get_base_imu_linacc(), robot.get_base_imu_angvel()
+        )
         solo_ekf.prediction_step()
 
         # EKF update step with all feet in contact
-        contacts_schedule = {'FL': True, 'FR': True, 'HL': True, 'HR': True}
+        contacts_schedule = {"FL": True, "FR": True, "HL": True, "HR": True}
         solo_ekf.update_step(contacts_schedule, q[7:], dq[6:])
 
         # Read the values of position, velocity and orientation of the robot
@@ -161,18 +168,26 @@ def demo(robot_name, sim_time):
         base_vel_ekf[i, :] = base_state_post.get("base_velocity")
         q_ekf = base_state_post.get("base_orientation")
         rpy_base_ekf[i, :] = pin.utils.matrixToRpy(q_ekf.matrix())
-    return base_pos, base_vel, base_pos_ekf, base_vel_ekf, rpy_base, rpy_base_ekf
+    return (
+        base_pos,
+        base_vel,
+        base_pos_ekf,
+        base_vel_ekf,
+        rpy_base,
+        rpy_base_ekf,
+    )
+
 
 def plot(x, y, x_legend, y_legend, title):
     t = np.arange(simulation_time)
     string = "XYZ"
     for i in range(3):
-        plt.subplot(int('31'+str(i+1)))
-        plt.plot(t, x[:, i], 'b', label=x_legend, linewidth=0.75)
-        plt.plot(t, y[:, i], 'r--', label=y_legend, linewidth=0.75)
+        plt.subplot(int("31" + str(i + 1)))
+        plt.plot(t, x[:, i], "b", label=x_legend, linewidth=0.75)
+        plt.plot(t, y[:, i], "r--", label=y_legend, linewidth=0.75)
         plt.ylabel("_" + string[i] + "_")
         plt.grid()
-    plt.legend(loc='upper right', shadow=True, fontsize='large')
+    plt.legend(loc="upper right", shadow=True, fontsize="large")
     plt.xlabel("time(ms)")
     plt.suptitle(title)
     plt.show()
@@ -195,10 +210,23 @@ if __name__ == "__main__":
         robot_name = "solo"
 
     # Run the demo
-    simulation_time = 5000 # ms
-    base_pos, base_vel, base_pos_ekf, base_vel_ekf, rpy_base, rpy_base_ekf = demo("solo", simulation_time)
+    simulation_time = 5000  # ms
+    (
+        base_pos,
+        base_vel,
+        base_pos_ekf,
+        base_vel_ekf,
+        rpy_base,
+        rpy_base_ekf,
+    ) = demo("solo", simulation_time)
 
     # Plot the results
     plot(base_pos, base_pos_ekf, "Squatting", "EKF", "Base_Position")
     plot(base_vel, base_vel_ekf, "Squatting", "EKF", "Base_Velocity")
-    plot(rpy_base, rpy_base_ekf, "Squatting", "EKF", "Base_Orientation(roll_pitch-yaw)")
+    plot(
+        rpy_base,
+        rpy_base_ekf,
+        "Squatting",
+        "EKF",
+        "Base_Orientation(roll_pitch-yaw)",
+    )

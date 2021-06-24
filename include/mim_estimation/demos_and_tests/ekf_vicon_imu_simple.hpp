@@ -294,10 +294,11 @@ public:
         // std::vector<std::string> joint_names = JOINT_NAMES();
         // for (int i = 0; i < Robot::n_dofs_; ++i)
         // {
-        //     unfiltered_pos_names[i] = task_name + "jraw_" + joint_names[i + 1];
-        //     unfiltered_vel_names[i] = task_name + "djraw_" + joint_names[i + 1];
-        //     filtered_pos_names[i] = task_name + "jfilt_" + joint_names[i + 1];
-        //     filtered_vel_names[i] = task_name + "djfilt_" + joint_names[i + 1];
+        //     unfiltered_pos_names[i] = task_name + "jraw_" + joint_names[i +
+        //     1]; unfiltered_vel_names[i] = task_name + "djraw_" +
+        //     joint_names[i + 1]; filtered_pos_names[i] = task_name + "jfilt_"
+        //     + joint_names[i + 1]; filtered_vel_names[i] = task_name +
+        //     "djfilt_" + joint_names[i + 1];
         // }
         // get the imu related names
         gyroscope_names[0] = task_name + "imu_base_gyro_x";

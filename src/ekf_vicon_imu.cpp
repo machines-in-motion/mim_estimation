@@ -33,9 +33,8 @@ void EkfViconImu::initialize(
     initialize(base_pose, base_quat_vicon_);
 }
 
-void EkfViconImu::initialize(
-    const Eigen::Ref<const Eigen::Vector3d>& base_pose,
-    const Eigen::Quaterniond& base_quat)
+void EkfViconImu::initialize(const Eigen::Ref<const Eigen::Vector3d>& base_pose,
+                             const Eigen::Quaterniond& base_quat)
 {
     // Load noise and other config parameters from YAML file:
     init_var_ = config_["init_var"].as<double>();
@@ -106,7 +105,7 @@ void EkfViconImu::initialize(
     // Initialize the rest of the filter state:
     state_post_.imu_vel.setZero();
     state_post_.accel_bias.setZero();
-    state_post_.accel_bias(2) = -9.81; // the bias is the gravity field
+    state_post_.accel_bias(2) = -9.81;  // the bias is the gravity field
     state_post_.gyro_bias.setZero();
     state_pre_ = state_post_;
 
@@ -127,10 +126,11 @@ void EkfViconImu::initialize(
     frame_quality_ = 0;
 }
 
-void EkfViconImu::update(const Eigen::Vector3d& accelerometer,
-                         const Eigen::Vector3d& gyroscope,
-                         const Eigen::Ref<const Eigen::Matrix4d>& base_pose_data,
-                         const bool is_new_frame)
+void EkfViconImu::update(
+    const Eigen::Vector3d& accelerometer,
+    const Eigen::Vector3d& gyroscope,
+    const Eigen::Ref<const Eigen::Matrix4d>& base_pose_data,
+    const bool is_new_frame)
 {
     base_quat_vicon_ = base_pose_data.topLeftCorner<3, 3>();
     update(accelerometer,
