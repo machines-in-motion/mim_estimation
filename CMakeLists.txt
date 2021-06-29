@@ -38,10 +38,8 @@ set(all_targets)
 
 # define the source files
 set(${PROJECT_NAME}_SRC_FILES
-    src/ekf_kin_imu.cpp #
-    # src/ekf_vicon_imu.cpp #
-    # src/ekf_kin_imu_base.cpp #
-    # src/ekf_vicon_imu_base.cpp #
+    src/base_ekf_kin_imu.cpp #
+    # src/base_ekf_vicon_imu.cpp #
     src/end_effector_force_estimator.cpp #
     src/io_tools/data_collector.cpp #
     src/io_tools/data_reader.cpp #
@@ -68,8 +66,11 @@ if(BUILD_TESTING)
   find_package(GTest CONFIG REQUIRED)
   include(GoogleTest)
   # List of all C++ tests.
-  set(unit_tests test_butterworth_filter test_ekf_vicon_imu
-                 test_extended_kalman_filter test_end_effector_force_estimator)
+  set(unit_tests #
+      test_butterworth_filter #
+      test_ekf_vicon_imu #
+      test_extended_kalman_filter #
+      test_end_effector_force_estimator)
   # Config folder
   get_filename_component(CONFIG_PATH config ABSOLUTE)
   # Create all C++ tests.
@@ -83,23 +84,11 @@ if(BUILD_TESTING)
       ${unit_test}
       PUBLIC
         CONFIG_PATH="${CONFIG_PATH}"
-        TEST_PARAMETER_YAML_FILE_PATH="${CONFIG_PATH}/test_vicon_base_state_estimator.yaml"
-        TEST_DATA_FILE_PATH="${CONFIG_PATH}/test_vicon_base_state_estimator.dat"
     )
     # declare the test as gtest
     gtest_add_tests(TARGET ${unit_test})
   endforeach(unit_test ${unit_tests})
 endif()
-
-#
-# Demo
-#
-
-# estimator based on IMU and Vicon
-add_executable(demo_ekf_vicon_imu demos/demo_ekf_vicon_imu.cpp)
-target_link_libraries(demo_ekf_vicon_imu ${PROJECT_NAME})
-# export the executable
-list(APPEND all_targets demo_ekf_vicon_imu)
 
 #
 # building documentation

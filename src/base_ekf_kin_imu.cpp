@@ -4,28 +4,120 @@
  * @copyright Copyright (c) 2020, New York University and Max Planck
  * Gesellschaft
  *
- * @brief Implement the EkfKinImu class.
+ * @brief Implement the EkfViconImu class.
  */
 
-#include "mim_estimation/ekf_vicon_imu.hpp"
+#include "mim_estimation/base_ekf_kin_imu.hpp"
+
 #include "pinocchio/math/rpy.hpp"
 #include "pinocchio/spatial/skew.hpp"
 
 namespace mim_estimation
 {
-EkfKinImu::EkfKinImu(double dt, const YAML::Node& config)
+/******************************************************************************/
+/*
+ * BaseEkfKinImuState
+ */
+
+BaseEkfKinImuState::BaseEkfKinImuState()
+{
+    // protected attributes.
+    state_vector_.resize(state_dim);
+
+    // public attributes.
+    position.setZero();
+    velocity.setZero();
+    orientation.setIdentity();
+    acceleration_bias.setZero();
+    angular_velocity_bias.setZero();
+    state_cov.resize(noise_dim, noise_dim);
+}
+
+BaseEkfKinImuState::~BaseEkfKinImuState()
+{
+}
+
+BaseEkfKinImuState BaseEkfKinImuState::operator+(
+    const Eigen::Matrix<double, state_dim, 1>& rhs) const
+{
+    BaseEkfKinImuState s;
+    s.position = this->position + rhs.segment(0, 3);
+    s.velocity = this->velocity + rhs.segment(3, 3);
+    s.orientation =
+        pinocchio::quaternion::exp3(rhs.segment(6, 3)) * this->orientation;
+    s.orientation.normalize();
+    s.acceleration_bias = this->acceleration_bias + rhs.segment(9, 3);
+    s.angular_velocity_bias = this->angular_velocity_bias + rhs.segment(12, 3);
+    return s;
+}
+
+BaseEkfKinImuState& BaseEkfKinImuState::operator=(const BaseEkfKinImuState& rhs)
+{
+    this->position = rhs.position;
+    this->velocity = rhs.velocity;
+    this->orientation = rhs.orientation;
+    this->acceleration_bias = rhs.acceleration_bias;
+    this->angular_velocity_bias = rhs.angular_velocity_bias;
+    return *this;
+}
+
+BaseEkfKinImuState& BaseEkfKinImuState::operator=(
+    const Eigen::Matrix<double, state_dim, 1>& rhs)
+{
+    this->position = rhs.segment(0, 3);
+    this->velocity = rhs.segment(3, 3);
+    this->orientation = pinocchio::quaternion::exp3(rhs.segment(6, 3));
+    this->acceleration_bias = rhs.segment(9, 3);
+    this->angular_velocity_bias = rhs.segment(12, 3);
+    return *this;
+}
+
+const Eigen::Matrix<double, state_dim, 1>& BaseEkfKinImuState::get_state(void)
+{
+    state_vector_.segment(0, 3) = position;
+    state_vector_.segment(3, 3) = velocity;
+    state_vector_.segment(6, 3) = pinocchio::quaternion::log3(orientation);
+    state_vector_.segment(9, 3) = acceleration_bias;
+    state_vector_.segment(12, 3) = angular_velocity_bias;
+    return state_vector_;
+}
+
+std::ostream& operator<<(std::ostream& out, const BaseEkfKinImuState& s)
+{
+    out << "IMU Position:" << std::endl;
+    out << s.position << std::endl << std::endl;
+    out << "IMU Quaternion:" << std::endl;
+    out << "  x: " << s.orientation.x() << ", y: " << s.orientation.y()
+        << ", z: " << s.orientation.z() << ", w: " << s.orientation.w()
+        << std::endl
+        << std::endl;
+    out << "IMU Linear Velocity:" << std::endl;
+    out << s.velocity << std::endl << std::endl;
+    out << "Accelerometer Bias:" << std::endl;
+    out << s.acceleration_bias << std::endl << std::endl;
+    out << "Gyroscope Bias" << std::endl;
+    out << s.angular_velocity_bias << std::endl << std::endl;
+    return out;
+}
+
+
+/******************************************************************************/
+/*
+ * BaseEkfKinImu
+ */
+EkfViconImu::EkfViconImu(double dt, const YAML::Node& config)
     : EKF(false, false, dt, 1), config_(config)
 {
 }
 
-void EkfKinImu::initialize(
+void EkfViconImu::initialize(
     const Eigen::Ref<const Eigen::Matrix4d>& base_pose_data)
 {
     initialize(base_pose_data.topRightCorner<3, 1>(),
                base_pose_data.topLeftCorner<3, 3>());
 }
 
-void EkfKinImu::initialize(
+void EkfViconImu::initialize(
     const Eigen::Ref<const Eigen::Vector3d>& base_pose,
     const Eigen::Ref<const Eigen::Matrix3d>& base_ori_mat)
 {
@@ -33,7 +125,7 @@ void EkfKinImu::initialize(
     initialize(base_pose, base_quat_vicon_);
 }
 
-void EkfKinImu::initialize(const Eigen::Ref<const Eigen::Vector3d>& base_pose,
+void EkfViconImu::initialize(const Eigen::Ref<const Eigen::Vector3d>& base_pose,
                              const Eigen::Quaterniond& base_quat)
 {
     // Load noise and other config parameters from YAML file:
@@ -126,7 +218,7 @@ void EkfKinImu::initialize(const Eigen::Ref<const Eigen::Vector3d>& base_pose,
     frame_quality_ = 0;
 }
 
-void EkfKinImu::update(
+void EkfViconImu::update(
     const Eigen::Vector3d& accelerometer,
     const Eigen::Vector3d& gyroscope,
     const Eigen::Ref<const Eigen::Matrix4d>& base_pose_data,
@@ -140,7 +232,7 @@ void EkfKinImu::update(
            is_new_frame);
 }
 
-void EkfKinImu::update(const Eigen::Vector3d& accelerometer,
+void EkfViconImu::update(const Eigen::Vector3d& accelerometer,
                          const Eigen::Vector3d& gyroscope,
                          const Eigen::Ref<const Eigen::Vector3d>& base_pose,
                          const Eigen::Quaterniond& base_quat,
@@ -158,10 +250,10 @@ void EkfKinImu::update(const Eigen::Vector3d& accelerometer,
     is_new_frame_ = is_new_frame;
 
     // call the EKF
-    updateFilter(is_new_frame);
+    update_filter(is_new_frame);
 }
 
-Eigen::Matrix<double, ViconIMUState::state_dim, 1> EkfKinImu::processModel(
+Eigen::Matrix<double, ViconIMUState::state_dim, 1> EkfViconImu::process_model(
     ViconIMUState& s)
 {
     Eigen::Matrix<double, ViconIMUState::state_dim, 1> out;
@@ -182,7 +274,7 @@ Eigen::Matrix<double, ViconIMUState::state_dim, 1> EkfKinImu::processModel(
     return out;
 }
 
-void EkfKinImu::formProcessJacobian(void)
+void EkfViconImu::form_process_jacobian(void)
 {
     proc_jac_.setZero();
     Eigen::Matrix3d world_R_base = state_post_.imu_quat.toRotationMatrix();
@@ -199,7 +291,7 @@ void EkfKinImu::formProcessJacobian(void)
     return;
 }
 
-void EkfKinImu::formProcessNoise(void)
+void EkfViconImu::form_process_noise(void)
 {
     proc_noise_.block(3, 3, 3, 3) =
         q_proc_accel_ * q_proc_accel_ * Eigen::MatrixXd::Identity(3, 3);
@@ -213,11 +305,11 @@ void EkfKinImu::formProcessNoise(void)
 }
 
 /**
- * @brief EkfKinImu::formNoiseJacobian
+ * @brief EkfViconImu::form_noise_jacobian
  *
  * The vector of the noise is : [accel gyro accel_bias gyro_bias]^T
  */
-void EkfKinImu::formNoiseJacobian(void)
+void EkfViconImu::form_noise_jacobian(void)
 {
     if (is_discrete_)
     {
@@ -241,8 +333,8 @@ void EkfKinImu::formNoiseJacobian(void)
     }
 }
 
-Eigen::Matrix<double, ViconIMUMeasure::meas_dim, 1> EkfKinImu::measModel(
-    ViconIMUState& s)
+Eigen::Matrix<double, ViconIMUMeasure::meas_dim, 1>
+EkfViconImu::measurement_model(ViconIMUState& s)
 {
     // Measurement is simply the imu position and orientation from Vicon:
     Eigen::Matrix<double, ViconIMUMeasure::meas_dim, 1> out;
@@ -252,14 +344,14 @@ Eigen::Matrix<double, ViconIMUMeasure::meas_dim, 1> EkfKinImu::measModel(
     return out;
 }
 
-void EkfKinImu::formMeasJacobian(void)
+void EkfViconImu::form_measurement_jacobian(void)
 {
     meas_jac_.block(0, 0, 3, 3) = Eigen::Matrix<double, 3, 3>::Identity();
     meas_jac_.block(3, 6, 3, 3) = Eigen::Matrix<double, 3, 3>::Identity();
     return;
 }
 
-void EkfKinImu::formMeasNoise(void)
+void EkfViconImu::form_measurement_noise(void)
 {
     meas_noise_.block(0, 0, 3, 3) =
         q_meas_base_pos_ * q_meas_base_pos_ * Eigen::MatrixXd::Identity(3, 3);
@@ -268,7 +360,7 @@ void EkfKinImu::formMeasNoise(void)
     return;
 }
 
-void EkfKinImu::formActualMeas(void)
+void EkfViconImu::form_actual_measurement(void)
 {
     /*tflayols: [done?] need to translate vicon measurement to express IMU
      * position*/

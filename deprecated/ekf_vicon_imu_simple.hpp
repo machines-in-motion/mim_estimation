@@ -93,7 +93,7 @@ public:
         // initialize the EKF
         vicon_bse_->initialize(input_vicon_base_pose_);
         // get the state after initialization
-        vicon_bse_->getFilterState(output_imu_position_,
+        vicon_bse_->get_filter_state(output_imu_position_,
                                    output_imu_orientation_,
                                    output_imu_linear_velocity_,
                                    output_accel_bias_,
@@ -131,7 +131,7 @@ public:
                                input_accelerometer_,
                                input_vicon_base_pose_,
                                input_vicon_is_new_frame_);
-            vicon_bse_->getFilterState(output_imu_position_,
+            vicon_bse_->get_filter_state(output_imu_position_,
                                        output_imu_orientation_,
                                        output_imu_linear_velocity_,
                                        output_accel_bias_,

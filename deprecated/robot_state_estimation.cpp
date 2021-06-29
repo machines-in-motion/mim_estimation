@@ -116,7 +116,7 @@ void RobotStateEstimation::initialize(
                                   new_frame);
             Eigen::Vector3d vicon_bse_base_vel, vicon_bse_accel_bias,
                 vicon_bse_gyro_bias;
-            vicon_bse_.getFilterState(init_posture.base_position_,
+            vicon_bse_.get_filter_state(init_posture.base_position_,
                                       vicon_bse_base_vel,
                                       init_posture.base_orientation_,
                                       vicon_bse_accel_bias,
@@ -359,7 +359,7 @@ void RobotStateEstimation::update_vicon_base_state_ekf()
                       new_frame);
     Eigen::Vector3d vicon_bse_base_vel, vicon_bse_accel_bias,
         vicon_bse_gyro_bias;
-    vicon_bse_.getFilterState(filtered_posture_.base_position_,
+    vicon_bse_.get_filter_state(filtered_posture_.base_position_,
                               vicon_bse_base_vel,
                               filtered_posture_.base_orientation_,
                               vicon_bse_accel_bias,

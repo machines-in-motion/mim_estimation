@@ -104,10 +104,10 @@ public:
         // store the measurements
         meas_pos_ = pos;
         // update the filter state
-        updateFilter(new_measured_value);
+        update_filter(new_measured_value);
     }
 
-    Eigen::Matrix<double, N, 1> getFilterState(void)
+    Eigen::Matrix<double, N, 1> get_filter_state(void)
     {
         return state_post_;
     }
@@ -126,7 +126,7 @@ public:
 
 private:
     /**
-     * @brief processModel
+     * @brief process_model
      * * \f{align}
      *  \dot{pos} = (meas_vel - meas_vel_bias)
      *  \dot{bias} = 0.0
@@ -135,7 +135,7 @@ private:
      * @param s: current state
      * @return out: the predicted state
      */
-    Eigen::Matrix<double, N, 1> processModel(SimpleEKFState& s)
+    Eigen::Matrix<double, N, 1> process_model(SimpleEKFState& s)
     {
         Eigen::Matrix<double, N, 1> out;
         out = s.pos_ + dt_ * meas_vel_;
@@ -143,46 +143,46 @@ private:
     }
 
     /**
-     * @brief formProcessJacobian
+     * @brief form_process_jacobian
      */
-    void formProcessJacobian(void)
+    void form_process_jacobian(void)
     {
         proc_jac_ << 0;
     }
 
-    void formProcessNoise(void)
+    void form_process_noise(void)
     {
         proc_noise_ << q_proc_noise_ * q_proc_noise_;
     }
 
-    void formNoiseJacobian(void)
+    void form_noise_jacobian(void)
     {
         noise_jac_ << 1;
     }
 
     /**
-     * @brief measModel
+     * @brief measurement_model
      * @param s: current state
      * @return out: the predicted measurement
      */
-    Eigen::Matrix<double, K, 1> measModel(SimpleEKFState& s)
+    Eigen::Matrix<double, K, 1> measurement_model(SimpleEKFState& s)
     {
         Eigen::Matrix<double, K, 1> out;
         out = s.pos_;
         return out;
     }
 
-    void formMeasJacobian(void)
+    void form_measurement_jacobian(void)
     {
         meas_jac_ << 1;
     }
 
-    void formMeasNoise(void)
+    void form_measurement_noise(void)
     {
         meas_noise_ << q_meas_noise_ * q_meas_noise_;
     }
 
-    void formActualMeas(void)
+    void form_actual_measurement(void)
     {
         meas_actual_ = meas_pos_;
     }

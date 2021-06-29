@@ -76,15 +76,15 @@ template <class S, class M>
 void UKF<S, M>::update(void)
 {
     updateControls();
-    formProcessNoise();
-    formMeasNoise();
-    formActualMeas();
+    form_process_noise();
+    form_measurement_noise();
+    form_actual_measurement();
 
     // discretize:
     if (!is_discrete_)
     {
-        formProcessJacobian();
-        formNoiseJacobian();
+        form_process_jacobian();
+        form_noise_jacobian();
         proc_noise_disc_ = dt_ * proc_jac_ * noise_jac_ * proc_noise_ *
                            noise_jac_.transpose() * proc_jac_.transpose();
         meas_noise_disc_ = meas_noise_ / dt_;
@@ -104,7 +104,7 @@ void UKF<S, M>::update(void)
     for (int i = 0; i < L; ++i)
     {
         tmp_state = spoints_mat_.col(i);
-        spoints_proc_.col(i) = processModel(tmp_state);
+        spoints_proc_.col(i) = process_model(tmp_state);
     }
     state_pre_ = spoints_proc_ * state_weights_;
     state_vec = state_pre_.getState();
@@ -121,10 +121,10 @@ void UKF<S, M>::update(void)
         for (int i = 0; i < L; ++i)
         {
             tmp_state = spoints_proc_.col(i);
-            spoints_meas_.col(i) = measModel(tmp_state);
+            spoints_meas_.col(i) = measurement_model(tmp_state);
         }
         meas_pred_ = spoints_meas_ * state_weights_;
-        Eigen::Matrix<double, K, 1> meas_vec = meas_pred_.getMeas();
+        Eigen::Matrix<double, K, 1> meas_vec = meas_pred_.get_measurement();
         meas_pred_.meas_cov =
             (spoints_meas_ - meas_vec.replicate(1, L)) *
                 cov_weights_.asDiagonal() *
@@ -152,7 +152,7 @@ void UKF<S, M>::update(void)
 }
 
 template <class S, class M>
-void UKF<S, M>::printDebug(void)
+void UKF<S, M>::print_debug(void)
 {
     std::cout << "State (pre):" << std::endl;
     std::cout << state_pre_.getState() << std::endl << std::endl;
@@ -212,10 +212,10 @@ void UKF<S, M>::printDebug(void)
     std::cout << gain_mat_ << std::endl << std::endl;
 
     std::cout << "Meas (Actual):" << std::endl;
-    std::cout << meas_actual_.getMeas() << std::endl << std::endl;
+    std::cout << meas_actual_.get_measurement() << std::endl << std::endl;
 
     std::cout << "Meas (Pred):" << std::endl;
-    std::cout << meas_pred_.getMeas() << std::endl << std::endl;
+    std::cout << meas_pred_.get_measurement() << std::endl << std::endl;
 
     std::cout << "Delx:" << std::endl;
     std::cout << gain_mat_ * (meas_actual_ - meas_pred_) << std::endl
