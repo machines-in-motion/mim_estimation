@@ -1,5 +1,5 @@
 #include <Eigen/Core>
-#include "mim_estimation/filtering_tools/ekf.hpp"
+#include "mim_estimation/standard_filters/ekf.hpp"
 #include "mim_estimation/io_tools/non_rt_data_collector.hpp"
 
 using namespace mim_estimation::standard_filters;
