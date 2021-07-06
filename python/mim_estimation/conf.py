@@ -15,6 +15,8 @@ end_effectors_frame_names = {
 # gravity vector
 g_vector = np.zeros(3)
 g_vector[2] = -9.81
+
+# discretization time (s)
 dt = 0.001
 
 # noise covariances (TO-BE-TUNED)

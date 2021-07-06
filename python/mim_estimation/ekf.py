@@ -22,7 +22,7 @@ def box_minus(R_plus, R):
 
 
 class EKF:
-    """EKF class for estimation of the position, velocity, orientation of the EKF_frame on the robot, and IMU bias_linear_accelerationa and bias_angular_rate. 
+    """EKF class for estimation of the position, velocity, orientation of the EKF_frame on the robot, and IMU bias_linear_acceleration and bias_angular_rate.
     EKF_frame can be defined in the Base or IMU frame. Position and orientation are expressed in the world, velocity is expressed in the EKF_frame,
     and bias terms are expressed in the IMU frame.
     
@@ -39,14 +39,16 @@ class EKF:
         Sigma_post : np.array(15,15)
             A posteriori error covariance matrix.
         mu_pre : dict
-            A priori estimate of the state vector,
-            (x = {p:(np.array(3,)), v:(np.array(3,)), q:(pin.Quaternion), b_a:(np.array(3,)), b_omega:(np.array(3,))}).
+            A priori estimate of the mean of the state vector,
+            (x = {p:(np.array(3,)), v:(np.array(3,)), q:(pinocchio.Quaternion), b_a:(np.array(3,)), b_omega:(np.array(3,))}).
         mu_post : dict 
-            A posteriori estimate of the state vector (x).
+            A posteriori estimate of the mean of the state vector (x).
         ekf_in_imu_frame : bool
-            Flase, EKF default frame is in the Base frame. True, EKF_frame is in the IMU frame.
-        SE3_imu_to_base : pin.SE3
+            False, EKF default frame is in the Base frame. True, EKF_frame is in the IMU frame.
+        SE3_imu_to_base : pinocchio.SE3
             Homogeneous transformation from IMU to Base.
+        SE3_base_to_imu : pinocchio.SE3
+            Homogeneous transformation from Base to IMU.
         Q_a : np.array(3,3)
             Continuous acceleration noise covariance.
         Q_omega : np.array(3,3)
@@ -98,7 +100,7 @@ class EKF:
         self.__Sigma_post = np.zeros((self.__nx, self.__nx))
         self.__omega_hat = np.zeros(3)
         self.__omega_base_prev = np.zeros(3)
-        self.__base_angacc = np.zeros(3)
+        self.__base_ang_acc = np.zeros(3)
         self.__SE3_imu_to_base = pin.SE3.Identity()
         self.__SE3_base_to_imu = pin.SE3.Identity()
         self.__Q_a = conf.Q_a
@@ -170,7 +172,7 @@ class EKF:
     def compute_end_effectors_FK_quantities(
         self, joint_positions, joint_velocities
     ):
-        """Returns end effectors position and linear velocitie w.r.t. base, expressed in base.
+        """Returns end effectors position and linear velocity w.r.t. base, expressed in base.
 
         Args:
             joint_positions (ndarray) : Generalized joint positions.
@@ -178,7 +180,7 @@ class EKF:
 
         Returns:
             dict : Position of all feet in the base frame.
-            dict : Linear velocities of all feet in the base frame.
+            dict : Linear velocity of all feet in the base frame.
         """
         # locking the base frame to the world frame
         base_pose = np.zeros(7)
@@ -234,11 +236,11 @@ class EKF:
             rot_imu_to_base = self.__SE3_imu_to_base.rotation
             r_base_to_imu_in_base = self.__SE3_imu_to_base.translation
             omega_base = rot_imu_to_base @ (omega_tilde - b_omega_post)
-            self.__base_angacc = (1.0 / dt) * (omega_base - self.__omega_base_prev)
+            self.__base_ang_acc = (1.0 / dt) * (omega_base - self.__omega_base_prev)
             self.__omega_base_prev = omega_base
             a_base_in_base = (
                 rot_imu_to_base @ (a_tilde - b_a_post)
-                + np.cross(self.__base_angacc, -r_base_to_imu_in_base)
+                + np.cross(self.__base_ang_acc, -r_base_to_imu_in_base)
                 + np.cross(
                     omega_base, np.cross(omega_base, -r_base_to_imu_in_base)
                 )
@@ -277,7 +279,7 @@ class EKF:
         v_pre = mu_pre["ekf_frame_velocity"]
         omega_hat = self.__omega_hat
         R_pre = q_pre.matrix()
-        # dr/ddelta_x
+        # dp/ddelta_x
         Fc[0:3, 3:6] = R_pre
         Fc[0:3, 6:9] = -R_pre @ pin.skew(v_pre)
         # dv/ddelta_x
@@ -307,7 +309,7 @@ class EKF:
         return Lc
 
     def construct_continuous_noise_covariance(self):
-        """Returns the continuous noise covarince corresponding to the process noise vector.
+        """Returns the continuous noise covariance corresponding to the process noise vector.
 
         Returns:
             np.array(12,12)
@@ -320,12 +322,12 @@ class EKF:
         return Qc
 
     def construct_discrete_noise_covariance(self, Fk, Lc, Qc):
-        """Returns the discrete noise covarince by using zero-order hold and truncating higher-order terms.
+        """Returns the discrete noise covariance by using zero-order hold and truncating higher-order terms.
 
         Args:
             Fk (np.array(15,15)): Discrete linearized error dynamic matrix.
             Lc (np.array(15,12)): Continuous noise jacobian.
-            Qc (np.array(12,12)): Continuous process noise covarince.
+            Qc (np.array(12,12)): Continuous process noise covariance.
 
         Returns:
             np.array(15,15)
@@ -454,10 +456,6 @@ class EKF:
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
-    from numpy import nditer
-
     solo_EKF = EKF(conf)
     f_tilde = random.rand(3)
     w_tilde = random.rand(3)
