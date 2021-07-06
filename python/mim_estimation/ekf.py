@@ -211,7 +211,7 @@ class EKF:
         return end_effectors_positions, end_effectors_velocities
 
     def integrate_model(self, a_tilde, omega_tilde):
-        """Calculates the 'a priori estimate of the state vector' from deterministic transient model by first_order integration.
+        """Calculates the 'a priori estimate of the mean of the state vector' from deterministic transient model by first_order integration.
 
         Args:
             a_tilde (np.array(3,)): IMU linear acceleration in the IMU frame.
@@ -420,7 +420,7 @@ class EKF:
     def update_step(
         self, contacts_schedule, joint_positions, joint_velocities
     ):
-        """Calculates the 'a posteriori error covariance matrix' and the 'a posteriori estimate of the state vector',
+        """Calculates the 'a posteriori error covariance matrix' and the 'a posteriori estimate of the mean of the state vector',
             based on new kinematic measurements.
 
         Args:
