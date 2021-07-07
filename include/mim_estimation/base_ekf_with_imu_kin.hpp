@@ -21,6 +21,9 @@ struct SystemState
     /** @brief State dimension. */
     static const int state_dim = 15;
 
+    /** @brief Process noise dimension. */
+    static const int noise_dim = 12;
+
     /** @brief Base/Imu position. */
     Eigen::Vector3d position = Eigen::Vector3d::Zero();
 
@@ -30,14 +33,14 @@ struct SystemState
     /** @brief Base/Imu linear attitude. */
     Eigen::Quaterniond attitude = Eigen::Quaterniond::Identity();
 
-    /** @brief Base/Imu acceleration bias. */
-    Eigen::Vector3d bias_acceleration = Eigen::Vector3d::Zero();
+    /** @brief Accelerometer bias. */
+    Eigen::Vector3d bias_accelerometer = Eigen::Vector3d::Zero();
 
-    /** @brief Base/Imu attitude bias. */
-    Eigen::Vector3d bias_attitude = Eigen::Vector3d::Zero();
+    /** @brief Gyroscope bias. */
+    Eigen::Vector3d bias_gyroscope = Eigen::Vector3d::Zero();
 
     /** @brief Process covariance. */
-    Eigen::MatrixXd sigma = Eigen::MatrixXd::Zero(state_dim, state_dim);
+    Eigen::MatrixXd covariance = Eigen::MatrixXd::Zero(state_dim, state_dim);
 };
 
 struct BaseEkfWithImuKinSettings
@@ -56,6 +59,56 @@ struct BaseEkfWithImuKinSettings
 
     /** @brief discretization time. */
     double dt = 0.001;
+
+    /** @brief Accelerometer noise covariance. */
+    Eigen::Vector3d noise_accelerometer =
+        0.00078 * 0.00078 * (Eigen::Vector3d() << dt, dt, dt).finished();
+
+    /** @brief Gyroscope noise covariance. */
+    Eigen::Vector3d noise_gyroscope =
+        0.000523 * (Eigen::Vector3d() << dt, dt, dt).finished();
+
+    /** @brief Accelerometer bias noise covariance. */
+    Eigen::Vector3d noise_bias_accelerometer =
+        0.0001 * 0.0001 * (Eigen::Vector3d() << 1.0, 1.0, 1.0).finished();
+
+    /** @brief Gyroscope bias noise covariance. */
+    Eigen::Vector3d noise_bias_gyroscope =
+        0.000618 * 0.000618 * (Eigen::Vector3d() << 1.0, 1.0, 1.0).finished();
+
+    /** @brief Continuous measurement noise covariance. */
+    Eigen::Vector3d meas_noise_cov =
+        (Eigen::Vector3d() << 1e-5, 1e-5, 1e-8).finished();
+
+    std::string to_string()
+    {
+        std::ostringstream oss;
+        oss << "The state is expressed in the imu frame ("
+            << (is_imu_frame ? "true" : "false") << ") or in the base frame ("
+            << (!is_imu_frame ? "true" : "false") << ")" << std::endl
+            << "End-effector frame names are = [";
+        for (std::size_t i = 0; i < end_effector_frame_names.size(); ++i)
+        {
+            oss << end_effector_frame_names[i] << " ";
+        }
+        oss << "]" << std::endl
+            << "The pinocchio model:\n"
+            << pinocchio_model << std::endl
+            << "The SE3 position of the imu in the base frame:\n"
+            << imu_in_base << std::endl
+            << "The control period (dt) = " << dt << std::endl
+            << "The noise of the accelerometer = "
+            << noise_accelerometer.transpose() << std::endl
+            << "The noise of the gyroscope = " << noise_gyroscope.transpose()
+            << std::endl
+            << "The noise of the accelerometer bias = "
+            << noise_bias_accelerometer.transpose() << std::endl
+            << "The noise of the gyroscope bias = "
+            << noise_bias_gyroscope.transpose() << std::endl
+            << "The measurement noise for all end-effector = "
+            << meas_noise_cov.transpose() << std::endl;
+        return oss.str();
+    }
 };
 
 /**
@@ -171,7 +224,7 @@ private:
     void construct_discrete_measurement_noise_covariance();
 
     /**
-     * @brief Propagate the state covariance (mu_pre_.covariance).
+     * @brief Propagate the state covariance (predicted_state_.covariance).
      */
     void prediction_step();
 
@@ -187,6 +240,19 @@ private:
                            Eigen::Ref<const Eigen::VectorXd> joint_position,
                            Eigen::Ref<const Eigen::VectorXd> joint_velocity);
 
+    /**
+     * @brief Update the current state posterior_state_ in function of the
+     * measurements.
+     *
+     * @param contact_schedule This indicates which end-effector is currently
+     *                         in contact.
+     * @param joint_position joint positions.
+     * @param joint_velocity joint velocities.
+     */
+    void update_step(const std::vector<bool>& contact_schedule,
+                     Eigen::Ref<const Eigen::VectorXd> joint_position,
+                     Eigen::Ref<const Eigen::VectorXd> joint_velocity);
+
     /*
      * Settings.
      */
@@ -197,37 +263,117 @@ private:
      * Internal Data.
      */
 private:
+    // Sensor data
+
+    /** @brief Joint positions reading. */
+    Eigen::VectorXd joint_position_;
+
+    /** @brief Joint velocities reading. */
+    Eigen::VectorXd joint_velocity_;
+
+    /** @brief Accelerometer reading. */
+    Eigen::Vector3d imu_accelerometer_;
+
+    /** @brief Joint velocities. */
+    Eigen::Vector3d imu_gyroscope_;
+
+    // Extended Kalman filter states.
+
+    /** @brief Predicted system state (next state). */
+    SystemState predicted_state_;
+
+    /** @brief Posterior system state (current state). */
+    SystemState posterior_state_;
+
+    // Kinematics data.
+
     /** @brief Rigid body dynamics data storage class. */
     pinocchio::Data pinocchio_data_;
 
-    /** @brief Predicted system state (next state). */
-    SystemState mu_pre_;
+    /** @brief Measured end-effectors positions expressend in the imu/base
+     * frame.
+     */
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >
+        kin_ee_position_;
 
-    /** @brief Posterior system state (current state). */
-    SystemState mu_post_;
+    /** @brief Measured end-effectors velocities expressend in the imu/base
+     * frame.
+     */
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >
+        kin_ee_velocity_;
+
+    /** @brief Pinocchio frame id corresponding to the end-effector potentially
+     * in contact. */
+    std::vector<pinocchio::FrameIndex> kin_ee_fid_;
+
+    /** @brief Robot configuration with base at the center of the world.*/
+    Eigen::VectorXd q_kin_;
+
+    /** @brief Robot velocity with static base frame. */
+    Eigen::VectorXd dq_kin_;
+
+    // Integrate model
+
+    /** @brief Rotation matrix from the posterior state. */
+    Eigen::Matrix3d attitude_post_;
+
+    /** @brief Imu/Base angular velocity. */
+    Eigen::Vector3d root_angular_velocity_;
+
+    /** @brief Imu/Base angular velocity previous value. */
+    Eigen::Vector3d root_angular_velocity_prev_;
+
+    /** @brief Imu/Base angular acceleration. */
+    Eigen::Vector3d root_angular_acceleration_;
+
+    /** @brief Imu/Base angular velocity. */
+    Eigen::Vector3d root_linear_acceleration_;
 
     /** @brief Gravity vector (default is negative along the z-axis). */
     Eigen::Vector3d gravity_;
 
-    /** @brief Linear velocity of the root (base/imu) computed from the
+    // Jacobians and Covariances computation.
+
+    /** @brief Continuous process jacobian. */
+    Eigen::MatrixXd cont_proc_jac_;
+
+    /** @brief Discrete process jacobian. */
+    Eigen::MatrixXd disc_proc_jac_;
+
+    /** @brief Process noise jacobian. */
+    Eigen::MatrixXd proc_noise_jac_;
+
+    /** @brief Continuous process noise covariance. */
+    Eigen::MatrixXd cont_proc_noise_cov_;
+
+    /** @brief Discrete process noise covariance. */
+    Eigen::MatrixXd disc_proc_noise_cov_;
+
+    /** @brief Discrete measurement noise covariance. */
+    Eigen::MatrixXd disc_meas_noise_cov_;
+
+    /** @brief Linear velocity of the root (base/imu) measured from the
      * kinematics. */
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >
-        root_velocities_per_end_effector_;
+        kin_meas_root_velocity_;
 
-    /** @brief Pinocchio frame id corresponding to the end-effector potentially
-     * in contact. */
-    std::vector<pinocchio::FrameIndex> contact_frame_id_;
+    /** @brief Measurement jacobian */
+    Eigen::MatrixXd meas_jac_;
 
-    // /** @brief Continuous process jacobian. */
-    // Eigen::MatrixXd cont_proc_jac_;
+    /** @brief Predicted base velocity, this is the predicted measurement. */
+    Eigen::VectorXd meas_error_;
 
-    // /** @brief Discrete process jacobian. */
-    // Eigen::MatrixXd disc_proc_jac_;
+    /** @brief Measurement covariance. */
+    Eigen::MatrixXd meas_covariance_;
 
-    // /** @brief Process noise jacobian. */
-    // Eigen::MatrixXd proc_noise_jac_;
+    /** @brief Kalman Gain computed during the update_step. */
+    Eigen::MatrixXd kalman_gain_;
 
-    // Eigen::MatrixXd proc_noise_jac_;
+    /** @brief LDLT decomposition to invert some matrix */
+    Eigen::LDLT<Eigen::MatrixXd> ldlt;
+
+    /** @brief Update vector which is a delta state. */
+    Eigen::VectorXd delta_state_;
 };
 
 }  // namespace mim_estimation
