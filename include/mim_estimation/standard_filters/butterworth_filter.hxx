@@ -177,7 +177,7 @@ void ButterworthFilter<
                           const std::vector<std::complex<double> >& Cpoles,
                           double Cgain,
                           double omega,
-                          bool flag,
+                          bool /*flag*/,
                           std::vector<std::complex<double> >& CTzeros,
                           std::vector<std::complex<double> >& CTpoles,
                           double& CTgain)
@@ -263,7 +263,7 @@ void ButterworthFilter<
             coefficients.at(j) -= delta_coefficients.at(j - 1);
         }
     }
-    for (int i = 0; i < coefficients.size(); i++)
+    for (std::size_t i = 0; i < coefficients.size(); i++)
     {
         coeffs(i) = coefficients.at(i).real();
     }

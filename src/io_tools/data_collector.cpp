@@ -19,8 +19,8 @@ void DataCollector::addVector(const Eigen::Ref<const Eigen::VectorXd>& data,
                               const std::vector<std::string>& name,
                               const std::vector<std::string>& units)
 {
-    assert(data.size() <= name.size());
-    assert(data.size() <= units.size());
+    assert(static_cast<std::size_t>(data.size()) <= name.size());
+    assert(static_cast<std::size_t>(data.size()) <= units.size());
 
     for (int i = 0; i < data.size(); ++i)
     {

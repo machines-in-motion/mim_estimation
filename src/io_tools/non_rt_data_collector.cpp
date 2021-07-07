@@ -195,7 +195,7 @@ void NonRtDataCollector::dump(std::string path)
         }
     }
     index += bool_ptr_.size();
-    assert((index)*nb_rows == buffer_size);
+    assert((static_cast<int>(index)*nb_rows) == buffer_size);
 
     // std::cout << "convert the buffer to little endian" << std:: endl;
     for (int i = 0; i < buffer_size; ++i)
