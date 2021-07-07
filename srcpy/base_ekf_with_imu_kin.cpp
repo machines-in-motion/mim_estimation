@@ -150,6 +150,23 @@ namespace py = pybind11;
 
 namespace mim_estimation
 {
+void set_pinocchio_model(BaseEkfWithImuKinSettings& obj, py::object py_src)
+{
+    obj.pinocchio_model = BoostPython::pybind_to_cpp<pinocchio::Model>(py_src);
+}
+py::object get_pinocchio_model(BaseEkfWithImuKinSettings& obj)
+{
+    return BoostPython::cpp_to_pybind(obj.pinocchio_model);
+}
+void set_imu_in_base(BaseEkfWithImuKinSettings& obj, py::object py_src)
+{
+    obj.imu_in_base = BoostPython::pybind_to_cpp<pinocchio::SE3>(py_src);
+}
+py::object get_imu_in_base(BaseEkfWithImuKinSettings& obj)
+{
+    return BoostPython::cpp_to_pybind(obj.imu_in_base);
+}
+
 void bind_base_ekf_with_imu_kin(py::module& module)
 {
     py::class_<BaseEkfWithImuKinSettings>(module, "BaseEkfWithImuKinSettings")
@@ -157,9 +174,9 @@ void bind_base_ekf_with_imu_kin(py::module& module)
         .def_readwrite("is_imu_frame", &BaseEkfWithImuKinSettings::is_imu_frame)
         .def_readwrite("end_effector_frame_names",
                        &BaseEkfWithImuKinSettings::end_effector_frame_names)
-        .def_readwrite("pinocchio_model",
-                       &BaseEkfWithImuKinSettings::pinocchio_model)
-        .def_readwrite("imu_in_base", &BaseEkfWithImuKinSettings::imu_in_base)
+        .def_property(
+            "pinocchio_model", &get_pinocchio_model, &set_pinocchio_model)
+        .def_property("imu_in_base", &get_imu_in_base, &set_imu_in_base)
         .def_readwrite("dt", &BaseEkfWithImuKinSettings::dt)
         .def_readwrite("noise_accelerometer",
                        &BaseEkfWithImuKinSettings::noise_accelerometer)
