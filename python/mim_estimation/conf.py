@@ -1,4 +1,5 @@
 import numpy as np
+import pinocchio as pin
 
 robot_name = "solo12"
 GUI = "Gepetto"
@@ -12,19 +13,15 @@ end_effectors_frame_names = {
     "HR": "HR_ANKLE",
 }
 
-# gravity vector
-g_vector = np.zeros(3)
-g_vector[2] = -9.81
-
-# discretization time (s)
-dt = 0.001
+# SE3 transformation from IMU to Base for solo12
+SE3_imu_to_base = pin.SE3(np.identity(3), np.array([0.10407, -0.00635, 0.01540]))
 
 # noise covariances (TO-BE-TUNED)
 # prediction noise
-eta_a = 0.00078 ** 2 * np.array([dt, dt, dt])
-eta_omega = 0.000523 ** 2 * np.array([dt, dt, dt])
-eta_b_a = 0.0001 ** 2 * np.array([1, 1, 1])
-eta_b_omega = 0.000618 ** 2 * np.array([1, 1, 1])
+eta_a = (0.00078 ** 2) * np.ones([3])
+eta_omega = (0.000523 ** 2) * np.ones([3])
+eta_b_a = (0.0001 ** 2) * np.ones([3])
+eta_b_omega = (0.000618 ** 2) * np.ones([3])
 
 Q_a = np.diag(eta_a)
 Q_omega = np.diag(eta_omega)

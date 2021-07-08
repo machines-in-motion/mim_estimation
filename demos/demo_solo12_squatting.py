@@ -114,10 +114,9 @@ def demo(robot_name, sim_time):
     frame_rpy = np.zeros((T, 3), float)
     frame_rpy_ekf = np.zeros((T, 3), float)
 
-    # Create EKF instance, set the SE3 from IMU to Base and set the EKF_frame
+    # Create EKF instance, and set the EKF_frame
     solo_ekf = EKF(conf)
-    solo_ekf.set_SE3_imu_to_base(robot.rot_base_to_imu.T, robot.r_base_to_imu)
-    solo_ekf.set_ekf_frame(False)
+    solo_ekf.set_ekf_in_imu_frame(False)
 
     # Run the simulator for the trajectory
     for i in range(T):
@@ -147,7 +146,8 @@ def demo(robot_name, sim_time):
             if solo_ekf.get_ekf_frame():
                 solo_ekf.set_mu_post("ekf_frame_position", imu_frame_pos)
                 solo_ekf.set_mu_post("ekf_frame_velocity", imu_frame_vel)
-                solo_ekf.set_mu_post("ekf_frame_orientation", pin.Quaternion(q[3:7]))
+                ekf_orien = pin.Quaternion(q[3:7]).matrix() @ robot.rot_base_to_imu.T
+                solo_ekf.set_mu_post("ekf_frame_orientation", pin.Quaternion(ekf_orien))
             else:
                 solo_ekf.set_mu_post("ekf_frame_position", q[:3])
                 solo_ekf.set_mu_post("ekf_frame_velocity", dq[:3])
@@ -167,11 +167,13 @@ def demo(robot_name, sim_time):
         if solo_ekf.get_ekf_frame():
             frame_pos[i, :] = imu_frame_pos
             frame_vel[i, :] = imu_frame_vel
+            frame_rot = pin.Quaternion(q[3:7]).matrix() @ robot.rot_base_to_imu.T
+            frame_rpy[i, :] = pin.utils.matrixToRpy(frame_rot)
         else:
             frame_pos[i, :] = q[:3]
             frame_vel[i, :] = dq[:3]
-        q_base = q[3:7]
-        frame_rpy[i, :] = pin.utils.matrixToRpy(pin.Quaternion(q_base).matrix())
+            q_base = pin.Quaternion(q[3:7])
+            frame_rpy[i, :] = pin.utils.matrixToRpy(q_base.matrix())
 
         # Read the values of position, velocity and orientation from EKF
         base_state_post = solo_ekf.get_mu_post()
@@ -239,5 +241,5 @@ if __name__ == "__main__":
         frame_rpy_ekf,
         "Squatting",
         "EKF",
-        "EKF_Frame_Orientation(roll_pitch-yaw)",
+        "EKF_Frame_Orientation(roll-pitch-yaw)",
     )

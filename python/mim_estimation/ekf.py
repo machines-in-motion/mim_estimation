@@ -1,4 +1,4 @@
-"""
+"""Extended Kalman Filter Class
 License BSD-3-Clause
 Copyright (c) 2021, New York University and Max Planck Gesellschaft.
 Author: Ahmad Gazar
@@ -27,28 +27,34 @@ class EKF:
     and bias terms are expressed in the IMU frame.
     
     Attributes:
-        robot : obj:'Pinocchio.RobotWrapper'
+        robot : obj:'pinocchio.RobotWrapper'
+        rmodel : obj:'pinocchio.Model'
+        rdata : obj:'pinocchio.Data'
         nx : int
             Dimension of the error state vector, (delta_x = [delta_p, delta_v, delta_theta, delta_b_a, delta_b_omega]).
-        dt : int
+        init_robot_config : ndarray
+            Initial configuration of the robot.
+        dt : float
             Discretization time.
         g_vector : np.array(3,)
             Gravity acceleration vector.
-        Sigma_pre : np.array(15,15)
-            A priori error covariance matrix.
-        Sigma_post : np.array(15,15)
-            A posteriori error covariance matrix.
+        base_frame_name : str
+        end_effectors_frame_names : dict
+        ekf_in_imu_frame : bool
+            False, EKF default frame is in the Base frame. True, EKF_frame is in the IMU frame.
         mu_pre : dict
             A priori estimate of the mean of the state vector,
             (x = {p:(np.array(3,)), v:(np.array(3,)), q:(pinocchio.Quaternion), b_a:(np.array(3,)), b_omega:(np.array(3,))}).
         mu_post : dict 
             A posteriori estimate of the mean of the state vector (x).
-        ekf_in_imu_frame : bool
-            False, EKF default frame is in the Base frame. True, EKF_frame is in the IMU frame.
+        Sigma_pre : np.array(15,15)
+            A priori error covariance matrix.
+        Sigma_post : np.array(15,15)
+            A posteriori error covariance matrix.
         SE3_imu_to_base : pinocchio.SE3
-            Homogeneous transformation from IMU to Base.
+            SE3 transformation from IMU to Base.
         SE3_base_to_imu : pinocchio.SE3
-            Homogeneous transformation from Base to IMU.
+            SE3 transformation from Base to IMU.
         Q_a : np.array(3,3)
             Continuous acceleration noise covariance.
         Q_omega : np.array(3,3)
@@ -61,11 +67,12 @@ class EKF:
             Continuous measurement noise covariance. 
     """
 
-    def __init__(self, conf):
+    def __init__(self, conf, dt = 0.001):
         """Initializes the EKF.
 
         Args:
-            conf : file that describes the name and frame names of the robot and noise covariance matrices of IMU.
+            conf: File that describes the name, frame names, properties of the robot and noise covariance matrices of IMU.
+            dt (float): Discretization time.
         """
         # private members
         self.__robot = robex.load(conf.robot_name)
@@ -73,8 +80,8 @@ class EKF:
         self.__rdata = self.__rmodel.createData()
         self.__nx = 5 * 3
         self.__init_robot_config = np.copy(self.__robot.q0)
-        self.__dt = conf.dt
-        self.__g_vector = conf.g_vector
+        self.__dt = dt
+        self.__g_vector = np.array([0, 0, -9.81])
         self.__base_frame_name = conf.base_link_name
         self.__end_effectors_frame_names = conf.end_effectors_frame_names
         self.__ekf_in_imu_frame = False
@@ -101,10 +108,10 @@ class EKF:
         self.__omega_hat = np.zeros(3)
         self.__omega_base_prev = np.zeros(3)
         self.__base_ang_acc = np.zeros(3)
-        self.__SE3_imu_to_base = pin.SE3.Identity()
-        self.__SE3_base_to_imu = pin.SE3.Identity()
-        self.__Q_a = conf.Q_a
-        self.__Q_omega = conf.Q_omega
+        self.__SE3_imu_to_base = conf.SE3_imu_to_base
+        self.__SE3_base_to_imu = self.__SE3_imu_to_base.inverse()
+        self.__Q_a = self.__dt * conf.Q_a
+        self.__Q_omega = self.__dt * conf.Q_omega
         self.__Qb_a = conf.Qb_a
         self.__Qb_omega = conf.Qb_omega
         self.__R = conf.R
@@ -113,17 +120,34 @@ class EKF:
 
     # private methods
     def __init_filter(self):
+        """Sets the initial values for the 'a posteriori estimate'.
+        """
         M = self.__compute_base_pose_se3(self.__init_robot_config)
-        world_R_base = M.rotation
-        q = Quaternion(world_R_base)
-        q.normalize()
-        self.__mu_post["ekf_frame_position"] = M.translation
+        rot_base_to_world = M.rotation
+        if self.__ekf_in_imu_frame:
+            rot_imu_to_base = self.__SE3_imu_to_base.rotation
+            q = Quaternion(rot_base_to_world @ rot_imu_to_base)
+            q.normalize()
+            self.__mu_post["ekf_frame_position"] = M.translation + rot_base_to_world.dot(self.__SE3_imu_to_base.translation)
+            self.__mu_post["ekf_frame_orientation"] = q
+        else:
+            q = Quaternion(rot_base_to_world)
+            q.normalize()
+            self.__mu_post["ekf_frame_position"] = M.translation
+            self.__mu_post["ekf_frame_orientation"] = q
         self.__mu_post["ekf_frame_velocity"] = np.zeros(3, dtype=float)
-        self.__mu_post["ekf_frame_orientation"] = q
         self.__mu_post["imu_bias_acceleration"] = np.zeros(3, dtype=float)
         self.__mu_post["imu_bias_orientation"] = np.zeros(3, dtype=float)
 
     def __compute_base_pose_se3(self, robot_configuration):
+        """Returns the SE3 transformation from base to world.
+
+        Args: 
+            robot_configuration (ndarray): Initial configuration of the robot.
+
+        Returns:
+            pinocchio.SE3
+        """
         pin.forwardKinematics(self.__rmodel, self.__rdata, robot_configuration)
         pin.framesForwardKinematics(
             self.__rmodel, self.__rdata, robot_configuration
@@ -134,37 +158,96 @@ class EKF:
     # public methods
     # accessors
     def get_robot_model(self):
+        """Returns the robot's model.
+
+        Returns:
+            pinocchio.Model
+        """
         return self.__rmodel
 
     def get_robot_data(self):
+        """Returns the robot's data.
+
+        Returns:
+            pinocchio.Data
+        """
         return self.__rdata
 
     def get_dt(self):
+        """Returns the discretization time.
+
+        Returns:
+            float
+        """  
         return self.__dt
 
     def get_g_vector(self):
+        """Returns the gravity acceleration vector.
+
+        Returns:
+            np.array(3,)
+        """
         return self.__g_vector
 
     def get_mu_pre(self):
+        """Returns the 'a priori estimate of the mean of the state vector'.
+
+        Returns:
+            dict
+        """
         return self.__mu_pre
 
     def get_mu_post(self):
+        """Returns the 'a posteriori estimate of the mean of the state vector'.
+
+        Returns:
+            dict
+        """
         return self.__mu_post
 
     def get_ekf_frame(self):
+        """Returns a boolean value for the ekf frame location.
+
+        Returns:
+            bool
+        """
         return self.__ekf_in_imu_frame
 
     # mutators (use only if you know what you are doing)
-    def set_mu_post(self, key, value):
-        self.__mu_post[key] = value
-
     def set_mu_pre(self, key, value):
+        """Sets a value for a state in the 'a priori estimate of the mean of the state vector'.
+
+        Args:
+            key (str): Key of the state in the dictionary.
+            value (np.array(3,)) or (pinocchio.Quaternion): Value for the corresponding state.
+        """
         self.__mu_pre[key] = value
 
-    def set_ekf_frame(self, bool_value):
+    def set_mu_post(self, key, value):
+        """Sets a value for a state in the 'a posteriori estimate of the mean of the state vector'.
+
+        Args:
+            key (str): Key of the state in the dictionary.
+            value (np.array(3,)) or (pinocchio.Quaternion): Value for the corresponding state.
+        """
+        self.__mu_post[key] = value
+
+    def set_ekf_in_imu_frame(self, bool_value):
+        """Sets the location of EKF frame on the robot, and updates the EKf initialization.
+
+        Args:
+            bool_value (bool): False in Base frame, True in IMU frame.
+        """
         self.__ekf_in_imu_frame = bool_value
+        self.__init_filter()
 
     def set_SE3_imu_to_base(self, rotation, translation):
+        """Sets the SE3 transformation from IMU to Base, and updates SE3 from Base to IMU.
+
+        Args:
+            rotation (np.array(3,3))
+            translation (np.array(3,))
+        """
         self.__SE3_imu_to_base.rotation = rotation
         self.__SE3_imu_to_base.translation = translation
         self.__SE3_base_to_imu = self.__SE3_imu_to_base.inverse()
@@ -175,12 +258,12 @@ class EKF:
         """Returns end effectors position and linear velocity w.r.t. base, expressed in base.
 
         Args:
-            joint_positions (ndarray) : Generalized joint positions.
-            joint_velocities (ndarray) : Generalized joint velocities.
+            joint_positions (ndarray): Generalized joint positions.
+            joint_velocities (ndarray): Generalized joint velocities.
 
         Returns:
-            dict : Position of all feet in the base frame.
-            dict : Linear velocity of all feet in the base frame.
+            dict: Position of all feet in the base frame.
+            dict: Linear velocity of all feet in the base frame.
         """
         # locking the base frame to the world frame
         base_pose = np.zeros(7)
@@ -361,13 +444,13 @@ class EKF:
         """Returns the discrete measurement jacobian matrix and the measurement residual.
 
         Args:
-            contacts_schedule (dic) : Logical contact schedule of the feet.
-            joint_positions (ndarray) : Generalized joint positions.
-            joint_velocities (ndarray) : Generalized joint velocities.
+            contacts_schedule (dic): Logical contact schedule of the feet.
+            joint_positions (ndarray): Generalized joint positions.
+            joint_velocities (ndarray): Generalized joint velocities.
 
         Returns:
-            np.array(12,15) : Discrete measurement jacobian matrix.
-            np.array(12,) : Measurement residual.
+            np.array(12,15): Discrete measurement jacobian matrix.
+            np.array(12,): Measurement residual.
         """
         Hk = np.zeros((12, self.__nx))  # 12x15
         predicted_frame_velocity = np.zeros(12)
@@ -424,9 +507,9 @@ class EKF:
             based on new kinematic measurements.
 
         Args:
-            contacts_schedule (dic) : Logical contact schedule of the feet.
-            joint_positions (ndarray) : Generalized joint positions.
-            joint_velocities (ndarray) : Generalized joint velocities.
+            contacts_schedule (dic): Logical contact schedule of the feet.
+            joint_positions (ndarray): Generalized joint positions.
+            joint_velocities (ndarray): Generalized joint velocities.
         """
         q_pre = self.__mu_pre["ekf_frame_orientation"]
         R_pre = q_pre.matrix()
