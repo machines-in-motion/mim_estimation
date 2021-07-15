@@ -203,7 +203,6 @@ def plot(x, y, x_legend, y_legend, title):
     plt.legend(loc="upper right", shadow=True, fontsize="large")
     plt.xlabel("time(ms)")
     plt.suptitle(title)
-    plt.show()
 
 
 if __name__ == "__main__":
@@ -234,8 +233,13 @@ if __name__ == "__main__":
     ) = demo("solo", simulation_time)
 
     # Plot the results
+    plt.figure("Position")
     plot(frame_pos, frame_pos_ekf, "Squatting", "EKF", "EKF_Frame_Position")
+
+    plt.figure("Velocity")
     plot(frame_vel, frame_vel_ekf, "Squatting", "EKF", "EKF_Frame_Velocity")
+
+    plt.figure("Orientation")
     plot(
         frame_rpy,
         frame_rpy_ekf,
@@ -243,3 +247,5 @@ if __name__ == "__main__":
         "EKF",
         "EKF_Frame_Orientation(roll-pitch-yaw)",
     )
+
+    plt.show()
