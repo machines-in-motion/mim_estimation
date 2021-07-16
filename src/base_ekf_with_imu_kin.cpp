@@ -42,30 +42,37 @@ void BaseEkfWithImuKin::initialize(const BaseEkfWithImuKinSettings& settings)
 {
     settings_ = settings;
 
-    if(settings_.pinocchio_model == pinocchio::Model())
+    if (settings_.pinocchio_model == pinocchio::Model())
     {
-        throw std::runtime_error("BaseEkfWithImuKin::initialize(settings): "
-                                 "Please initialize the pinocchio model "
-                                 "in the setting object.");
+        throw std::runtime_error(
+            "BaseEkfWithImuKin::initialize(settings): "
+            "Please initialize the pinocchio model "
+            "in the setting object.");
     }
-
-    /// @todo Set all quantities in the base frame by default, to be removed.
-    settings_.is_imu_frame = false;
 
     // Number of end-effector.
     int nb_ee = settings.end_effector_frame_names.size();
 
     // resize all end-effector vectors.
-    kin_meas_root_velocity_.resize(nb_ee);
-    kin_ee_position_.resize(nb_ee);
-    kin_ee_velocity_.resize(nb_ee);
+    kin_meas_root_velocity_.resize(nb_ee, Eigen::Vector3d::Zero());
+    kin_ee_position_.resize(nb_ee, Eigen::Vector3d::Zero());
+    kin_ee_velocity_.resize(nb_ee, Eigen::Vector3d::Zero());
     kin_ee_fid_.resize(nb_ee);
 
     // Extract the end-effector frame ids.
-    for (unsigned int i = 0; nb_ee; ++i)
+    for (int i = 0; i < nb_ee; ++i)
     {
-        kin_ee_fid_[i] = settings_.pinocchio_model.getFrameId(
-            settings_.end_effector_frame_names[i]);
+        std::string& frame_name = settings_.end_effector_frame_names[i];
+        if (settings_.pinocchio_model.existFrame(frame_name))
+        {
+            kin_ee_fid_[i] = settings_.pinocchio_model.getFrameId(frame_name);
+        }
+        else
+        {
+            throw std::runtime_error(
+                "The end effector frame name (" + frame_name +
+                ") does not exist in the pinocchio::Model.");
+        }
     }
 
     // Resize the measurement matrices.
@@ -75,10 +82,11 @@ void BaseEkfWithImuKin::initialize(const BaseEkfWithImuKinSettings& settings)
     meas_error_ = Eigen::VectorXd::Zero(measurement_size);
     kalman_gain_ =
         Eigen::MatrixXd::Zero(posterior_state_.state_dim, measurement_size);
+    disc_meas_noise_cov_ =
+        Eigen::MatrixXd::Zero(measurement_size, measurement_size);
 
     // Kinematic vectors.
-    q_kin_.resize(settings_.pinocchio_model.nq);
-    q_kin_.fill(0.0);
+    q_kin_ = Eigen::VectorXd::Zero(settings_.pinocchio_model.nq);
     q_kin_(6) = 1.0;
     dq_kin_ = Eigen::VectorXd::Zero(settings_.pinocchio_model.nv);
 
@@ -90,10 +98,10 @@ void BaseEkfWithImuKin::initialize(const BaseEkfWithImuKinSettings& settings)
 }
 
 void BaseEkfWithImuKin::set_initial_state(
-    const Eigen::Vector3d& base_position,
+    Eigen::Ref<const Eigen::Vector3d> base_position,
     const Eigen::Quaterniond& base_attitude,
-    const Eigen::Vector3d& base_linear_velocity,
-    const Eigen::Vector3d& base_angular_velocity)
+    Eigen::Ref<const Eigen::Vector3d> base_linear_velocity,
+    Eigen::Ref<const Eigen::Vector3d> base_angular_velocity)
 {
     if (settings_.is_imu_frame)
     {
@@ -117,6 +125,21 @@ void BaseEkfWithImuKin::set_initial_state(
         posterior_state_.attitude = base_attitude;
         posterior_state_.linear_velocity = base_linear_velocity;
     }
+}
+
+void BaseEkfWithImuKin::set_initial_state(
+    Eigen::Ref<const Eigen::Matrix<double, 7, 1> > base_se3_position,
+    Eigen::Ref<const Eigen::Matrix<double, 6, 1> > base_se3_velocity)
+{
+    Eigen::Quaterniond base_attitude;
+    base_attitude.x() = base_se3_position(3);
+    base_attitude.y() = base_se3_position(4);
+    base_attitude.z() = base_se3_position(5);
+    base_attitude.w() = base_se3_position(6);
+    set_initial_state(base_se3_position.block<3, 1>(0, 0),
+                      base_attitude,
+                      base_se3_velocity.block<3, 1>(0, 0),
+                      base_se3_velocity.block<3, 1>(3, 0));
 }
 
 void BaseEkfWithImuKin::update_filter(
@@ -190,6 +213,13 @@ void BaseEkfWithImuKin::get_filter_output(
     robot_velocity.tail(joint_velocity_.size()) = joint_velocity_;
 }
 
+void BaseEkfWithImuKin::get_measurement(
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >&
+        root_velocities)
+{
+    root_velocities = kin_meas_root_velocity_;
+}
+
 void BaseEkfWithImuKin::compute_end_effectors_forward_kinematics(
     Eigen::Ref<const Eigen::VectorXd> joint_position,
     Eigen::Ref<const Eigen::VectorXd> joint_velocity)
@@ -202,18 +232,22 @@ void BaseEkfWithImuKin::compute_end_effectors_forward_kinematics(
            "'joint_velocity' has wrong size.");
 
     // Fill in the robot configuration and velocity.
+    q_kin_.fill(0.0);
+    q_kin_(6) = 1.0;
     q_kin_.segment(7, nb_joint_dof) = joint_position;
+    dq_kin_.head<6>().fill(0.0);
     dq_kin_.segment(6, nb_joint_dof) = joint_velocity;
 
     // Perform the Forward kinematics.
     pinocchio::forwardKinematics(
         pinocchio_model, pinocchio_data_, q_kin_, dq_kin_);
-    pinocchio::framesForwardKinematics(
-        pinocchio_model, pinocchio_data_, q_kin_);
 
     std::size_t nb_ee = settings_.end_effector_frame_names.size();
     for (std::size_t i = 0; i < nb_ee; ++i)
     {
+        pinocchio::updateFramePlacement(
+            pinocchio_model, pinocchio_data_, kin_ee_fid_[i]);
+
         kin_ee_position_[i] = pinocchio_data_.oMf[kin_ee_fid_[i]].translation();
         kin_ee_velocity_[i] =
             pinocchio::getFrameVelocity(pinocchio_model,
@@ -322,6 +356,7 @@ void BaseEkfWithImuKin::construct_continuous_noise_covariance()
 
 void BaseEkfWithImuKin::construct_discrete_noise_covariance()
 {
+    disc_proc_noise_cov_.fill(0.0);
     Eigen::MatrixXd& Fk = disc_proc_jac_;
     Eigen::MatrixXd& Lc = proc_noise_jac_;
     Eigen::MatrixXd& Qc = cont_proc_noise_cov_;
@@ -331,15 +366,13 @@ void BaseEkfWithImuKin::construct_discrete_noise_covariance()
 
 void BaseEkfWithImuKin::construct_discrete_measurement_noise_covariance()
 {
+    disc_meas_noise_cov_.fill(0.0);
     // Construct the continuous measurement covariance matrix first.
-    disc_meas_noise_cov_.block<3, 3>(0, 0) =
-        settings_.meas_noise_cov.asDiagonal();
-    disc_meas_noise_cov_.block<3, 3>(3, 3) =
-        settings_.meas_noise_cov.asDiagonal();
-    disc_meas_noise_cov_.block<3, 3>(6, 6) =
-        settings_.meas_noise_cov.asDiagonal();
-    disc_meas_noise_cov_.block<3, 3>(9, 9) =
-        settings_.meas_noise_cov.asDiagonal();
+    for (unsigned int i = 0; i < settings_.end_effector_frame_names.size(); ++i)
+    {
+        disc_meas_noise_cov_.block<3, 3>(i * 3, i * 3) =
+            settings_.meas_noise_cov.asDiagonal();
+    }
     // Discretise it.
     disc_meas_noise_cov_ /= settings_.dt;
 }
@@ -371,17 +404,24 @@ void BaseEkfWithImuKin::measurement_model(
         // If the end-effector is in contact we update the measurement.
         if (contact_schedule[i])
         {
-            // compute measurement jacobian
-            meas_jac_.block<3, 3>(3 * i, 3) = Eigen::Matrix3d::Identity();
-            meas_jac_.block<3, 3>(3 * i, 12) =
-                pinocchio::skew(kin_ee_position_[i]);
+            if (settings_.is_imu_frame)
+            {
+            }
+            else
+            {
+                // compute measurement jacobian
+                meas_jac_.block<3, 3>(3 * i, 3) = Eigen::Matrix3d::Identity();
+                meas_jac_.block<3, 3>(3 * i, 12) =
+                    pinocchio::skew(kin_ee_position_[i]);
 
-            // compute measurement error
-            kin_meas_root_velocity_[i] =
-                -kin_ee_velocity_[i] -
-                root_angular_velocity_.cross(kin_ee_position_[i]);
-            meas_error_.segment<3>(i * 3) =
-                predicted_state_.linear_velocity - kin_meas_root_velocity_[i];
+                // compute measurement error
+                kin_meas_root_velocity_[i] =
+                    -kin_ee_velocity_[i] -
+                    root_angular_velocity_.cross(kin_ee_position_[i]);
+                meas_error_.segment<3>(i * 3) =
+                    kin_meas_root_velocity_[i] -
+                    predicted_state_.linear_velocity;
+            }
         }
         // Otherwise we set the error to 0.
         else
@@ -418,6 +458,9 @@ void BaseEkfWithImuKin::update_step(
 
     // Compute the delta in the state.
     delta_state_ = kalman_gain_ * meas_error_;
+
+    /// @todo remove this line, cancel the update
+    // delta_state_.setZero();
 
     // update the current state (posterior)
     posterior_state_.covariance =

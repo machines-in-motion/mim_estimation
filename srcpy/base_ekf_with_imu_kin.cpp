@@ -167,6 +167,13 @@ py::object get_imu_in_base(BaseEkfWithImuKinSettings& obj)
     return BoostPython::cpp_to_pybind(obj.imu_in_base);
 }
 
+std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > get_measurement(BaseEkfWithImuKin& obj)
+{
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > tmp;
+    obj.get_measurement(tmp);
+    return tmp;
+}
+
 void bind_base_ekf_with_imu_kin(py::module& module)
 {
     py::class_<BaseEkfWithImuKinSettings>(module, "BaseEkfWithImuKinSettings")
@@ -193,10 +200,27 @@ void bind_base_ekf_with_imu_kin(py::module& module)
     py::class_<BaseEkfWithImuKin>(module, "BaseEkfWithImuKin")
         .def(py::init<>())
         // Public methods.
-        .def("initialize", &BaseEkfWithImuKin::initialize)
-        .def("set_initial_state", &BaseEkfWithImuKin::set_initial_state)
-        .def("update_filter", &BaseEkfWithImuKin::update_filter)
-        .def("get_filter_output", &BaseEkfWithImuKin::get_filter_output);
+        .def("initialize", &BaseEkfWithImuKin::initialize,
+             "Get the EKF settings and initialize the filter from them.")
+        .def("set_initial_state",
+             static_cast<void(
+                 (BaseEkfWithImuKin::*)(Eigen::Ref<const Eigen::Vector3d>,
+                                        const Eigen::Quaterniond&,
+                                        Eigen::Ref<const Eigen::Vector3d>,
+                                        Eigen::Ref<const Eigen::Vector3d>))>(
+                 &BaseEkfWithImuKin::set_initial_state),
+             "Set the initial state from the base position and velocity.")
+        .def("set_initial_state",
+             static_cast<void((
+                 BaseEkfWithImuKin::*)(Eigen::Ref<
+                                           const Eigen::Matrix<double, 7, 1> >,
+                                       Eigen::Ref<const Eigen::
+                                                      Matrix<double, 6, 1> >))>(
+                 &BaseEkfWithImuKin::set_initial_state),
+             "Set the initial state from the base position and velocity.")
+        .def("update_filter", &BaseEkfWithImuKin::update_filter, "")
+        .def("get_filter_output", &BaseEkfWithImuKin::get_filter_output, "")
+        .def("get_measurement", &get_measurement, "");
 }
 
 }  // namespace mim_estimation

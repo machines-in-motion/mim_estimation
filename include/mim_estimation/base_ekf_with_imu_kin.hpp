@@ -139,15 +139,29 @@ public:
     /**
      * @brief Set initial state.
      *
-     * @param robot_configuration is the robot position in generalized
-     *                            coordinates.
-     * @param robot_velocity is the robot velocity in generalized
-     *                       coordinates.
+     * @param base_position Base position with respect to the world frame.
+     * @param base_attitude Base orientation with respect to the world frame.
+     * @param base_linear_velocity Base linear velocity with respect to the base
+     * frame.
+     * @param base_angular_velocity Base angular velocity with respect to the
+     * base frame.
      */
-    void set_initial_state(const Eigen::Vector3d& base_position,
-                           const Eigen::Quaterniond& base_attitude,
-                           const Eigen::Vector3d& base_linear_velocity,
-                           const Eigen::Vector3d& base_angular_velocity);
+    void set_initial_state(
+        Eigen::Ref<const Eigen::Vector3d> base_position,
+        const Eigen::Quaterniond& base_attitude,
+        Eigen::Ref<const Eigen::Vector3d> base_linear_velocity,
+        Eigen::Ref<const Eigen::Vector3d> base_angular_velocity);
+
+    /**
+     * @brief Set initial state.
+     *
+     * @param base_se3_position [XYZ Quaternion] SE3 representation of the base
+     * position with respect to the world frame.
+     * @param base_se3_velocity [Linear Angular] base velocity in thebase frame.
+     */
+    void set_initial_state(
+        Eigen::Ref<const Eigen::Matrix<double, 7, 1> > base_se3_position,
+        Eigen::Ref<const Eigen::Matrix<double, 6, 1> > base_se3_velocity);
 
     /**
      * @brief Feed in the sensor raw data from the robot and update the filter
@@ -175,6 +189,16 @@ public:
      */
     void get_filter_output(Eigen::Ref<Eigen::VectorXd> robot_configuration,
                            Eigen::Ref<Eigen::VectorXd> robot_velocity);
+
+    /**
+     * @brief Get measurement.
+     * 
+     * @param root_velocities 
+     */
+    void get_measurement(
+        std::vector<Eigen::Vector3d,
+                    Eigen::aligned_allocator<Eigen::Vector3d> >&
+            root_velocities);
 
     /*
      * Private methods.

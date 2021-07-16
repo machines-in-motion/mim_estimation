@@ -109,6 +109,7 @@ def demo(robot_name, sim_time):
     # initialize vectors for data collecting
     base_pos = np.zeros((T, 3), float)
     base_vel = np.zeros((T, 3), float)
+    meas_base_vel = [np.zeros((T, 3), float) for _ in range(4)]
     base_pos_ekf = np.zeros((T, 3), float)
     base_vel_ekf = np.zeros((T, 3), float)
     rpy_base = np.zeros((T, 3), float)
@@ -163,6 +164,10 @@ def demo(robot_name, sim_time):
         rpy_base[i, :] = pin.utils.matrixToRpy(pin.Quaternion(q_base).matrix())
 
         # Read the values of position, velocity and orientation from EKF
+        meas_base_vel[0][i, :] = solo_ekf.measured_base_velocity[0:3]
+        meas_base_vel[1][i, :] = solo_ekf.measured_base_velocity[3:6]
+        meas_base_vel[2][i, :] = solo_ekf.measured_base_velocity[6:9]
+        meas_base_vel[3][i, :] = solo_ekf.measured_base_velocity[9:12]
         base_state_post = solo_ekf.get_mu_post()
         base_pos_ekf[i, :] = base_state_post.get("base_position")
         base_vel_ekf[i, :] = base_state_post.get("base_velocity")
@@ -175,10 +180,12 @@ def demo(robot_name, sim_time):
         base_vel_ekf,
         rpy_base,
         rpy_base_ekf,
+        meas_base_vel,
     )
 
 
 def plot(x, y, x_legend, y_legend, title):
+    plt.figure(title)
     t = np.arange(simulation_time)
     string = "XYZ"
     for i in range(3):
@@ -190,7 +197,6 @@ def plot(x, y, x_legend, y_legend, title):
     plt.legend(loc="upper right", shadow=True, fontsize="large")
     plt.xlabel("time(ms)")
     plt.suptitle(title)
-    plt.show()
 
 
 if __name__ == "__main__":
@@ -218,6 +224,7 @@ if __name__ == "__main__":
         base_vel_ekf,
         rpy_base,
         rpy_base_ekf,
+        meas_base_vel,
     ) = demo("solo", simulation_time)
 
     # Plot the results
@@ -230,3 +237,18 @@ if __name__ == "__main__":
         "EKF",
         "Base_Orientation(roll_pitch-yaw)",
     )
+    plot(
+        meas_base_vel[0],
+        meas_base_vel[1],
+        "meas_base_vel0",
+        "meas_base_vel1",
+        "Meas base vel 0/1"
+    )
+    plot(
+        meas_base_vel[2],
+        meas_base_vel[3],
+        "meas_base_vel2",
+        "meas_base_vel3",
+        "Meas base vel 2/3"
+    )
+    plt.show()

@@ -10,7 +10,10 @@ from numpy.linalg import inv
 from numpy import random
 import pinocchio as pin
 import numpy as np
+np.set_printoptions(edgeitems=50, linewidth=18000,
+                    formatter=dict(float=lambda x: "%.3g" % x))
 from mim_estimation import conf
+
 
 # plus and minus operators on SO3
 def box_plus(R, theta):
@@ -263,7 +266,7 @@ class EKF:
     ):
         Hk = np.zeros((12, self.__nx))  # 12x15
         predicted_base_velocity = np.zeros(12)
-        measured_base_velocity = np.zeros(12)
+        self.measured_base_velocity = np.zeros(12)
         # end effectors frame positions and velocities expressed in the world frame
         ee_positions, ee_velocities = self.compute_end_effectors_FK_quantities(
             joint_positions, joint_velocities
@@ -281,15 +284,15 @@ class EKF:
                 predicted_base_velocity[i : i + 3] = self.__mu_pre[
                     "base_velocity"
                 ]
-                measured_base_velocity[i : i + 3] = (
+                self.measured_base_velocity[i : i + 3] = (
                     -ee_velocities[key]
                     - pin.skew(self.__omega_hat) @ ee_positions[key]
                 )
             else:
                 predicted_base_velocity[i : i + 3] = np.zeros(3)
-                measured_base_velocity[i : i + 3] = np.zeros(3)
+                self.measured_base_velocity[i : i + 3] = np.zeros(3)
             i += 3
-        error = measured_base_velocity - predicted_base_velocity
+        error = self.measured_base_velocity - predicted_base_velocity
         return Hk, error
 
     def compute_innovation_covariance(self, Hk, Rk):
