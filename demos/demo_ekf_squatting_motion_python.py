@@ -107,17 +107,16 @@ def demo(robot_name, sim_time):
     robot_leg_ctrl = RobotImpedanceController(robot, config_file)
 
     # initialize vectors for data collecting
-    base_pos = np.zeros((T, 3), float)
-    base_vel = np.zeros((T, 3), float)
-    meas_base_vel = [np.zeros((T, 3), float) for _ in range(4)]
-    base_pos_ekf = np.zeros((T, 3), float)
-    base_vel_ekf = np.zeros((T, 3), float)
-    rpy_base = np.zeros((T, 3), float)
-    rpy_base_ekf = np.zeros((T, 3), float)
+    frame_pos = np.zeros((T, 3), float)
+    frame_vel = np.zeros((T, 3), float)
+    frame_pos_ekf = np.zeros((T, 3), float)
+    frame_vel_ekf = np.zeros((T, 3), float)
+    frame_rpy = np.zeros((T, 3), float)
+    frame_rpy_ekf = np.zeros((T, 3), float)
 
-    # Create EKF instance and set the SE3 from IMU to Base
+    # Create EKF instance, and set the EKF_frame
     solo_ekf = EKF(conf)
-    solo_ekf.set_SE3_imu_in_base(robot.rot_base_to_imu.T, robot.r_base_to_imu)
+    solo_ekf.set_ekf_in_imu_frame(False)
 
     # Run the simulator for the trajectory
     for i in range(T):
@@ -142,10 +141,17 @@ def demo(robot_name, sim_time):
 
         # -------------- Run the EKF -------------- #
         # Set the initial values of EKF
+        imu_frame_pos, imu_frame_vel = robot.get_imu_frame_position_velocity()
         if i == 0:
-            solo_ekf.set_mu_post("base_position", q[:3])
-            solo_ekf.set_mu_post("base_velocity", dq[:3])
-            solo_ekf.set_mu_post("base_orientation", pin.Quaternion(q[3:7]))
+            if solo_ekf.get_ekf_frame():
+                solo_ekf.set_mu_post("ekf_frame_position", imu_frame_pos)
+                solo_ekf.set_mu_post("ekf_frame_velocity", imu_frame_vel)
+                ekf_orien = pin.Quaternion(q[3:7]).matrix() @ robot.rot_base_to_imu.T
+                solo_ekf.set_mu_post("ekf_frame_orientation", pin.Quaternion(ekf_orien))
+            else:
+                solo_ekf.set_mu_post("ekf_frame_position", q[:3])
+                solo_ekf.set_mu_post("ekf_frame_velocity", dq[:3])
+                solo_ekf.set_mu_post("ekf_frame_orientation", pin.Quaternion(q[3:7]))
 
         # EKF prediction step
         solo_ekf.integrate_model(
@@ -157,35 +163,35 @@ def demo(robot_name, sim_time):
         contacts_schedule = {"FL": True, "FR": True, "HL": True, "HR": True}
         solo_ekf.update_step(contacts_schedule, q[7:], dq[6:])
 
-        # Read the values of position, velocity and orientation of the robot
-        base_pos[i, :] = q[:3]
-        base_vel[i, :] = dq[:3]
-        q_base = q[3:7]
-        rpy_base[i, :] = pin.utils.matrixToRpy(pin.Quaternion(q_base).matrix())
+        # Read the values of position, velocity and orientation from the robot
+        if solo_ekf.get_ekf_frame():
+            frame_pos[i, :] = imu_frame_pos
+            frame_vel[i, :] = imu_frame_vel
+            frame_rot = pin.Quaternion(q[3:7]).matrix() @ robot.rot_base_to_imu.T
+            frame_rpy[i, :] = pin.utils.matrixToRpy(frame_rot)
+        else:
+            frame_pos[i, :] = q[:3]
+            frame_vel[i, :] = dq[:3]
+            q_base = pin.Quaternion(q[3:7])
+            frame_rpy[i, :] = pin.utils.matrixToRpy(q_base.matrix())
 
         # Read the values of position, velocity and orientation from EKF
-        meas_base_vel[0][i, :] = solo_ekf.measured_base_velocity[0:3]
-        meas_base_vel[1][i, :] = solo_ekf.measured_base_velocity[3:6]
-        meas_base_vel[2][i, :] = solo_ekf.measured_base_velocity[6:9]
-        meas_base_vel[3][i, :] = solo_ekf.measured_base_velocity[9:12]
         base_state_post = solo_ekf.get_mu_post()
-        base_pos_ekf[i, :] = base_state_post.get("base_position")
-        base_vel_ekf[i, :] = base_state_post.get("base_velocity")
-        q_ekf = base_state_post.get("base_orientation")
-        rpy_base_ekf[i, :] = pin.utils.matrixToRpy(q_ekf.matrix())
+        frame_pos_ekf[i, :] = base_state_post.get("ekf_frame_position")
+        frame_vel_ekf[i, :] = base_state_post.get("ekf_frame_velocity")
+        q_ekf = base_state_post.get("ekf_frame_orientation")
+        frame_rpy_ekf[i, :] = pin.utils.matrixToRpy(q_ekf.matrix())
     return (
-        base_pos,
-        base_vel,
-        base_pos_ekf,
-        base_vel_ekf,
-        rpy_base,
-        rpy_base_ekf,
-        meas_base_vel,
+        frame_pos,
+        frame_vel,
+        frame_rpy,
+        frame_pos_ekf,
+        frame_vel_ekf,
+        frame_rpy_ekf,
     )
 
 
 def plot(x, y, x_legend, y_legend, title):
-    plt.figure(title)
     t = np.arange(simulation_time)
     string = "XYZ"
     for i in range(3):
@@ -216,39 +222,30 @@ if __name__ == "__main__":
         robot_name = "solo"
 
     # Run the demo
-    simulation_time = 5000  # ms
+    simulation_time = 20000  # ms
     (
-        base_pos,
-        base_vel,
-        base_pos_ekf,
-        base_vel_ekf,
-        rpy_base,
-        rpy_base_ekf,
-        meas_base_vel,
+        frame_pos,
+        frame_vel,
+        frame_rpy,
+        frame_pos_ekf,
+        frame_vel_ekf,
+        frame_rpy_ekf,
     ) = demo("solo", simulation_time)
 
     # Plot the results
-    plot(base_pos, base_pos_ekf, "Squatting", "EKF", "Base_Position")
-    plot(base_vel, base_vel_ekf, "Squatting", "EKF", "Base_Velocity")
+    plt.figure("Position")
+    plot(frame_pos, frame_pos_ekf, "Squatting", "EKF", "EKF_Frame_Position")
+
+    plt.figure("Velocity")
+    plot(frame_vel, frame_vel_ekf, "Squatting", "EKF", "EKF_Frame_Velocity")
+
+    plt.figure("Orientation")
     plot(
-        rpy_base,
-        rpy_base_ekf,
+        frame_rpy,
+        frame_rpy_ekf,
         "Squatting",
         "EKF",
-        "Base_Orientation(roll_pitch-yaw)",
+        "EKF_Frame_Orientation(roll-pitch-yaw)",
     )
-    plot(
-        meas_base_vel[0],
-        meas_base_vel[1],
-        "meas_base_vel0",
-        "meas_base_vel1",
-        "Meas base vel 0/1"
-    )
-    plot(
-        meas_base_vel[2],
-        meas_base_vel[3],
-        "meas_base_vel2",
-        "meas_base_vel3",
-        "Meas base vel 2/3"
-    )
+
     plt.show()
