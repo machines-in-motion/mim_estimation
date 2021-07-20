@@ -10,22 +10,38 @@
 #pragma once
 
 #include <Eigen/Eigen>
+
 #include "pinocchio/multibody/data.hpp"
 #include "pinocchio/multibody/model.hpp"
 
 namespace mim_estimation
 {
+enum Solver
+{
+    FullPivLU,
+    HouseholderQR,
+    ColPivHouseholderQR,
+    FullPivHouseholderQR,
+    CompleteOrthogonalDecomposition,
+    LLT,
+    LDLT,
+    BDCSVD,
+    JacobiSVD
+};
+
 class EndEffectorForceEstimator
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+    typedef std::map<std::string, pinocchio::FrameIndex> EndEffectorIdMap;
+
     typedef std::map<
         pinocchio::FrameIndex,
         pinocchio::Data::Matrix6x,
         std::less<pinocchio::FrameIndex>,
-        Eigen::aligned_allocator<std::pair<const pinocchio::FrameIndex,
-                                           pinocchio::Data::Matrix6x> > >
+        Eigen::aligned_allocator<
+            std::pair<const pinocchio::FrameIndex, pinocchio::Data::Matrix6x>>>
         ContactJacobianMap;
 
     typedef std::map<
@@ -33,7 +49,7 @@ public:
         Eigen::Matrix<double, 6, 1>,
         std::less<pinocchio::FrameIndex>,
         Eigen::aligned_allocator<std::pair<const pinocchio::FrameIndex,
-                                           Eigen::Matrix<double, 6, 1> > > >
+                                           Eigen::Matrix<double, 6, 1>>>>
         EndEffectorForceMap;
 
 public:
@@ -44,37 +60,60 @@ public:
      */
     EndEffectorForceEstimator();
 
-    /** @brief Destroy the EndEffectorForceEsstimator object. */
+    /** @brief Destroy the EndEffectorForceEstimator object. */
     ~EndEffectorForceEstimator();
 
-    void initialize(std::string urdf_path,
-                    const std::vector<pinocchio::FrameIndex>& frame_indexes =
-                        std::vector<pinocchio::FrameIndex>());
+    void initialize(const std::string& urdf_path,
+                    const std::vector<std::string>& frame_name =
+                        std::vector<std::string>());
 
-    void add_contact_frame(const pinocchio::FrameIndex& frame_index);
+    void add_contact_frame(const std::string& frame_name);
 
-    void add_contact_frame(
-        const std::vector<pinocchio::FrameIndex>& frame_indexes);
+    void add_contact_frame(const std::vector<std::string>& frame_names);
 
     void run(const Eigen::VectorXd& joint_positions,
              const Eigen::VectorXd& joint_torques);
 
+    const Eigen::Matrix<double, 6, 1>& get_force(const std::string& frame_name);
+
+    bool has_free_flyer()
+    {
+        return robot_model_.joints[1].shortname() == "JointModelFreeFlyer";
+    }
+
+    std::string to_string()
+    {
+        return "EndEffectorForceEstimator::to_string(): to implement.";
+    }
+
 private:
+    Eigen::VectorXd solve(Eigen::Ref<const Eigen::MatrixXd> a,
+                          Eigen::Ref<const Eigen::VectorXd> b);
+
     /** @brief Contact Jacobians associated to a robot frame. */
     ContactJacobianMap contact_jacobians_;
 
-    /** @brief Transposed inverted contact Jacobians associated to a robot
-     * frame. */
-    ContactJacobianMap contact_jacobians_transposed_inversed_;
-
-    /** @brief Forces applied by the environmnent at the end-effector [N]. */
+    /** @brief Forces applied by the environment at the end-effector [N]. */
     EndEffectorForceMap end_effector_forces_;
+
+    /** @brief Map from model frame name to frame id. */
+    EndEffectorIdMap end_effector_id_map_;
 
     /** @brief Rigid body model of the robot, constructed from a urdf file. */
     pinocchio::Model robot_model_;
 
     /** @brief Cache of the algorithm performed on the robot model. */
     pinocchio::Data robot_data_;
+
+    /** @brief Internal robot configuration to perform the rigid body
+     * algorithms. */
+    Eigen::VectorXd q_;
+
+    /** @brief Linear solver for the equation \$f A x = B \$f */
+    Solver solver_;
+
+    /** @brief Number of joint Dof */
+    int nb_joint_;
 };
 
 }  // namespace mim_estimation

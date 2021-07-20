@@ -69,6 +69,7 @@ list(APPEND all_targets ${PROJECT_NAME})
 pybind11_add_module(${PROJECT_NAME}_cpp MODULE #
   srcpy/${PROJECT_NAME}.cpp #
   srcpy/base_ekf_with_imu_kin.cpp #
+  srcpy/end_effector_force_estimator.cpp #
 )
 # cmake-format: on
 target_link_libraries(${PROJECT_NAME}_cpp PRIVATE pybind11::module)
