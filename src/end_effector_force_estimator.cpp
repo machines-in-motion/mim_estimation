@@ -20,15 +20,6 @@ EndEffectorForceEstimator::EndEffectorForceEstimator()
 {
     contact_jacobians_.clear();
     end_effector_forces_.clear();
-    // solver_ = FullPivLU;
-    // solver_ = HouseholderQR;
-    solver_ = ColPivHouseholderQR;
-    // solver_ = FullPivHouseholderQR;
-    // solver_ = CompleteOrthogonalDecomposition;
-    // solver_ = LLT;
-    // solver_ = LDLT;
-    // solver_ = BDCSVD;
-    // solver_ = JacobiSVD;
 }
 
 EndEffectorForceEstimator::~EndEffectorForceEstimator()
@@ -43,12 +34,10 @@ void EndEffectorForceEstimator::initialize(
     nb_joint_ = robot_model_.nv;
     q_.resize(robot_model_.nq);
     q_.fill(0.0);
-    if (has_free_flyer())
-    {
-        q_(6) = 1.0;
-        nb_joint_ -= 6;
-    }
     add_contact_frame(frame_names);
+
+    // run once with dummy data in order to update the different internal
+    // matrix size, especially inside the numerical solver.
 }
 
 void EndEffectorForceEstimator::add_contact_frame(const std::string& frame_name)
@@ -62,8 +51,9 @@ void EndEffectorForceEstimator::add_contact_frame(const std::string& frame_name)
     }
     end_effector_id_map_[frame_name] = robot_model_.getFrameId(frame_name);
     const pinocchio::FrameIndex& frame_index = end_effector_id_map_[frame_name];
-    contact_jacobians_[frame_index] =
-        pinocchio::Data::Matrix6x::Zero(6, robot_model_.nv);
+    contact_jacobians_[frame_index] = Eigen::MatrixXd::Zero(6, robot_model_.nv);
+    contact_jacobians_transpose_[frame_index] =
+        Eigen::MatrixXd::Zero(robot_model_.nv, 3);
     end_effector_forces_[frame_index] = Eigen::Matrix<double, 6, 1>::Zero();
 }
 
@@ -82,7 +72,7 @@ void EndEffectorForceEstimator::run(const Eigen::VectorXd& joint_positions,
     q_.tail(joint_positions.size()) = joint_positions;
     // Compute the current contact Jacobians.
     pinocchio::computeJointJacobians(robot_model_, robot_data_, q_);
-    for (ContactJacobianMap::iterator cnt_it = contact_jacobians_.begin();
+    for (Matrix6xMap::iterator cnt_it = contact_jacobians_.begin();
          cnt_it != contact_jacobians_.end();
          ++cnt_it)
     {
@@ -94,50 +84,13 @@ void EndEffectorForceEstimator::run(const Eigen::VectorXd& joint_positions,
                                     pinocchio::LOCAL_WORLD_ALIGNED,
                                     contact_jacobians_[frame_index]);
 
-        end_effector_forces_[frame_index].head<3>() =
-            - solve(contact_jacobians_[frame_index]
-                      .topRows<3>()
-                      .rightCols(nb_joint_)
-                      .transpose(),
-                  joint_torques);
-    }
-}
+        contact_jacobians_transpose_[frame_index] =
+            contact_jacobians_[frame_index].topRows<3>().transpose();
 
-Eigen::VectorXd EndEffectorForceEstimator::solve(
-    Eigen::Ref<const Eigen::MatrixXd> a, Eigen::Ref<const Eigen::VectorXd> b)
-{
-    switch (solver_)
-    {
-        case Solver::FullPivLU:
-            return a.fullPivLu().solve(b);
-            break;
-        case Solver::HouseholderQR:
-            return a.householderQr().solve(b);
-            break;
-        case Solver::ColPivHouseholderQR:
-            return a.colPivHouseholderQr().solve(b);
-            break;
-        case Solver::FullPivHouseholderQR:
-            return a.fullPivHouseholderQr().solve(b);
-            break;
-        case Solver::CompleteOrthogonalDecomposition:
-            return a.completeOrthogonalDecomposition().solve(b);
-            break;
-        case Solver::LLT:
-            return a.llt().solve(b);
-            break;
-        case Solver::LDLT:
-            return a.ldlt().solve(b);
-            break;
-        case Solver::BDCSVD:
-            return a.bdcSvd().solve(b);
-            break;
-        case Solver::JacobiSVD:
-            return a.jacobiSvd().solve(b);
-            break;
-        default:
-            return a.colPivHouseholderQr().solve(b);
-            break;
+        solver_.compute(contact_jacobians_transpose_[frame_index]);
+
+        end_effector_forces_[frame_index].head<3>() =
+            -solver_.solve(joint_torques);
     }
 }
 

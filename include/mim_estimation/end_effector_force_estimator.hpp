@@ -16,25 +16,20 @@
 
 namespace mim_estimation
 {
-enum Solver
-{
-    FullPivLU,
-    HouseholderQR,
-    ColPivHouseholderQR,
-    FullPivHouseholderQR,
-    CompleteOrthogonalDecomposition,
-    LLT,
-    LDLT,
-    BDCSVD,
-    JacobiSVD
-};
-
 class EndEffectorForceEstimator
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+    typedef Eigen::Matrix<double, Eigen::Dynamic, 3> MatrixX3;
     typedef std::map<std::string, pinocchio::FrameIndex> EndEffectorIdMap;
+
+    typedef std::map<pinocchio::FrameIndex,
+                     MatrixX3,
+                     std::less<pinocchio::FrameIndex>,
+                     Eigen::aligned_allocator<
+                         std::pair<const pinocchio::FrameIndex, MatrixX3>>>
+        MatrixX3Map;
 
     typedef std::map<
         pinocchio::FrameIndex,
@@ -42,7 +37,7 @@ public:
         std::less<pinocchio::FrameIndex>,
         Eigen::aligned_allocator<
             std::pair<const pinocchio::FrameIndex, pinocchio::Data::Matrix6x>>>
-        ContactJacobianMap;
+        Matrix6xMap;
 
     typedef std::map<
         pinocchio::FrameIndex,
@@ -76,22 +71,18 @@ public:
 
     const Eigen::Matrix<double, 6, 1>& get_force(const std::string& frame_name);
 
-    bool has_free_flyer()
-    {
-        return robot_model_.joints[1].shortname() == "JointModelFreeFlyer";
-    }
-
     std::string to_string()
     {
         return "EndEffectorForceEstimator::to_string(): to implement.";
     }
 
 private:
-    Eigen::VectorXd solve(Eigen::Ref<const Eigen::MatrixXd> a,
-                          Eigen::Ref<const Eigen::VectorXd> b);
-
     /** @brief Contact Jacobians associated to a robot frame. */
-    ContactJacobianMap contact_jacobians_;
+    Matrix6xMap contact_jacobians_;
+
+    /** @brief Transpose of the contact Jacobians associated to a robot frame.
+     */
+    MatrixX3Map contact_jacobians_transpose_;
 
     /** @brief Forces applied by the environment at the end-effector [N]. */
     EndEffectorForceMap end_effector_forces_;
@@ -110,7 +101,7 @@ private:
     Eigen::VectorXd q_;
 
     /** @brief Linear solver for the equation \$f A x = B \$f */
-    Solver solver_;
+    Eigen::ColPivHouseholderQR<MatrixX3> solver_;
 
     /** @brief Number of joint Dof */
     int nb_joint_;

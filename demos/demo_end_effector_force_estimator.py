@@ -51,8 +51,6 @@ def main(argv):
         robot_config.urdf_path_no_prismatic, ["contact"]
     )
 
-    print(ee_force_estimator.has_free_flyer())
-
     estimated_force = []
 
     # Estimate forces.

@@ -24,7 +24,6 @@ void bind_end_effector_force_estimator(py::module& module)
         .def(py::init<>())
         .def("initialize", &EndEffectorForceEstimator::initialize)
         .def("run", &EndEffectorForceEstimator::run)
-        .def("has_free_flyer", &EndEffectorForceEstimator::has_free_flyer)
         .def("add_contact_frame",
              static_cast<void(
                  (EndEffectorForceEstimator::*)(const std::string& frame_name))>(
