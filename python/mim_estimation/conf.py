@@ -14,7 +14,9 @@ end_effectors_frame_names = {
 }
 
 # SE3 transformation from IMU to Base for solo12
-SE3_imu_to_base = pin.SE3(np.identity(3), np.array([0.10407, -0.00635, 0.01540]))
+SE3_imu_to_base = pin.SE3(
+    np.identity(3), np.array([0.10407, -0.00635, 0.01540])
+)
 
 # noise covariances (TO-BE-TUNED)
 # prediction noise

@@ -176,8 +176,7 @@ class DataCollection(object):
     def clear_data(self, data_name):
         if not (data_name) in self.data:
             return
-        else:
-            self.data.pop(data_name)
+        self.data.pop(data_name)
 
     def _file_path(self, file_name):
         if not file_name.endswith(".pkl"):
@@ -341,13 +340,10 @@ def demo(robot_name, nb_iteration):
         logger.collect_data("ekf_base_vel", i, dq_ekf[:3])
         logger.collect_data("ekf_base_rpy", i, rpy_base_ekf)
         for ee, vel in enumerate(root_velocities):
-            logger.collect_data(
-                "ekf_root_velocities[" + str(ee) + "]", i, vel
-            )
+            logger.collect_data("ekf_root_velocities[" + str(ee) + "]", i, vel)
 
     logger.dump_data()
     logger.plot_all()
-    return
 
 
 if __name__ == "__main__":
@@ -355,17 +351,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--solo", help="Demonstrate Solo.", action="store_true"
     )
-    parser.add_argument(
-        "--bolt", help="Demonstrate Bolt.", action="store_true"
-    )
     args = parser.parse_args()
     if args.solo:
         robot_name = "solo"
-    elif args.bolt:
-        robot_name = "bolt"
     else:
         robot_name = "solo"
 
     # Run the demo
     simulation_time = 5000  # ms
-    demo("solo", simulation_time)
+    demo(robot_name, simulation_time)

@@ -66,7 +66,8 @@ list(APPEND all_targets ${PROJECT_NAME})
 #
 # Python Bindings
 #
-pybind11_add_module(${PROJECT_NAME}_cpp MODULE #
+pybind11_add_module(
+  ${PROJECT_NAME}_cpp MODULE #
   srcpy/${PROJECT_NAME}.cpp #
   srcpy/base_ekf_with_imu_kin.cpp #
 )
@@ -101,11 +102,7 @@ if(BUILD_TESTING)
     # link to the created librairies and its dependencies
     target_link_libraries(${unit_test} ${PROJECT_NAME} GTest::gtest)
     # create 2 macro: the path to the config file and the path to the data file
-    target_compile_definitions(
-      ${unit_test}
-      PUBLIC
-        CONFIG_PATH="${CONFIG_PATH}"
-    )
+    target_compile_definitions(${unit_test} PUBLIC CONFIG_PATH="${CONFIG_PATH}")
     # declare the test as gtest
     gtest_add_tests(TARGET ${unit_test})
   endforeach(unit_test ${unit_tests})

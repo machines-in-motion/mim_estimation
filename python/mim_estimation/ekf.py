@@ -25,7 +25,7 @@ class EKF:
     """EKF class for estimation of the position, velocity, orientation of the EKF_frame on the robot, and IMU bias_linear_acceleration and bias_angular_rate.
     EKF_frame can be defined in the Base or IMU frame. Position and orientation are expressed in the world, velocity is expressed in the EKF_frame,
     and bias terms are expressed in the IMU frame.
-    
+
     Attributes:
         robot : obj:'pinocchio.RobotWrapper'
         rmodel : obj:'pinocchio.Model'
@@ -45,7 +45,7 @@ class EKF:
         mu_pre : dict
             A priori estimate of the mean of the state vector,
             (x = {p:(np.array(3,)), v:(np.array(3,)), q:(pinocchio.Quaternion), b_a:(np.array(3,)), b_omega:(np.array(3,))}).
-        mu_post : dict 
+        mu_post : dict
             A posteriori estimate of the mean of the state vector (x).
         Sigma_pre : np.array(15,15)
             A priori error covariance matrix.
@@ -64,10 +64,10 @@ class EKF:
         Qb_omega : np.array(3,3)
             Continuous bias angular rate noise covariance.
         R : np.array(12,12)
-            Continuous measurement noise covariance. 
+            Continuous measurement noise covariance.
     """
 
-    def __init__(self, conf, dt = 0.001):
+    def __init__(self, conf, dt=0.001):
         """Initializes the EKF.
 
         Args:
@@ -120,15 +120,18 @@ class EKF:
 
     # private methods
     def __init_filter(self):
-        """Sets the initial values for the 'a posteriori estimate'.
-        """
+        """Sets the initial values for the 'a posteriori estimate'."""
         M = self.__compute_base_pose_se3(self.__init_robot_config)
         rot_base_to_world = M.rotation
         if self.__ekf_in_imu_frame:
             rot_imu_to_base = self.__SE3_imu_to_base.rotation
             q = Quaternion(rot_base_to_world @ rot_imu_to_base)
             q.normalize()
-            self.__mu_post["ekf_frame_position"] = M.translation + rot_base_to_world.dot(self.__SE3_imu_to_base.translation)
+            self.__mu_post[
+                "ekf_frame_position"
+            ] = M.translation + rot_base_to_world.dot(
+                self.__SE3_imu_to_base.translation
+            )
             self.__mu_post["ekf_frame_orientation"] = q
         else:
             q = Quaternion(rot_base_to_world)
@@ -142,7 +145,7 @@ class EKF:
     def __compute_base_pose_se3(self, robot_configuration):
         """Returns the SE3 transformation from base to world.
 
-        Args: 
+        Args:
             robot_configuration (ndarray): Initial configuration of the robot.
 
         Returns:
@@ -178,7 +181,7 @@ class EKF:
 
         Returns:
             float
-        """  
+        """
         return self.__dt
 
     def get_g_vector(self):
@@ -288,9 +291,7 @@ class EKF:
                 pin.LOCAL_WORLD_ALIGNED,
             )
             end_effectors_positions[key] = frame_position
-            end_effectors_velocities[
-                key
-            ] = frame_velocity.linear
+            end_effectors_velocities[key] = frame_velocity.linear
         return end_effectors_positions, end_effectors_velocities
 
     def integrate_model(self, a_tilde, omega_tilde):
@@ -319,7 +320,9 @@ class EKF:
             rot_imu_to_base = self.__SE3_imu_to_base.rotation
             r_base_to_imu_in_base = self.__SE3_imu_to_base.translation
             omega_base = rot_imu_to_base @ (omega_tilde - b_omega_post)
-            self.__base_ang_acc = (1.0 / dt) * (omega_base - self.__omega_base_prev)
+            self.__base_ang_acc = (1.0 / dt) * (
+                omega_base - self.__omega_base_prev
+            )
             self.__omega_base_prev = omega_base
             a_base_in_base = (
                 rot_imu_to_base @ (a_tilde - b_a_post)
@@ -346,7 +349,9 @@ class EKF:
         self.__mu_pre["imu_bias_acceleration"] = self.__mu_post[
             "imu_bias_acceleration"
         ]
-        self.__mu_pre["imu_bias_orientation"] = self.__mu_post["imu_bias_orientation"]
+        self.__mu_pre["imu_bias_orientation"] = self.__mu_post[
+            "imu_bias_orientation"
+        ]
         self.__omega_hat = omega_hat
 
     def compute_discrete_prediction_jacobian(self):
@@ -354,7 +359,7 @@ class EKF:
 
         Returns:
             np.array(15,15)
-        """  
+        """
         dt, g = self.__dt, self.__g_vector
         Fc = np.zeros((self.__nx, self.__nx), dtype=float)
         mu_pre = self.get_mu_pre()
@@ -381,7 +386,7 @@ class EKF:
 
         Returns:
             np.array(15,12)
-        """  
+        """
         v_pre = self.__mu_pre["ekf_frame_velocity"]
         Lc = np.zeros((self.__nx, self.__nx - 3), dtype=float)
         Lc[3:6, 0:3] = -np.eye(3)
@@ -396,7 +401,7 @@ class EKF:
 
         Returns:
             np.array(12,12)
-        """  
+        """
         Qc = np.zeros((self.__nx - 3, self.__nx - 3), dtype=float)
         Qc[0:3, 0:3] = self.__Q_a
         Qc[3:6, 3:6] = self.__Q_omega
@@ -420,16 +425,15 @@ class EKF:
         return (Qk_left @ Qc @ Qk_right) * self.__dt
 
     def construct_discrete_measurement_noise_covariance(self):
-        """Returns the discrete measurement noise covariance. 
+        """Returns the discrete measurement noise covariance.
 
         Returns:
             np.array(12,12)
-        """ 
+        """
         return (1 / self.__dt) * self.__R
 
     def prediction_step(self):
-        """Calculates the 'a priori error covariance matrix' in the prediction step.
-        """
+        """Calculates the 'a priori error covariance matrix' in the prediction step."""
         Fk = self.compute_discrete_prediction_jacobian()
         Lc = self.compute_noise_jacobian()
         Qc = self.construct_continuous_noise_covariance()
@@ -473,9 +477,14 @@ class EKF:
                     "ekf_frame_velocity"
                 ]
                 if self.__ekf_in_imu_frame:
-                    base_motion = pin.Motion(-ee_velocities[key] - pin.skew(self.__omega_hat) @ ee_positions[key],
-                                                self.__SE3_imu_to_base.rotation @ self.__omega_hat)
-                    measured_frame_velocity[i: i+3] = self.__SE3_base_to_imu.act(base_motion).linear
+                    base_motion = pin.Motion(
+                        -ee_velocities[key]
+                        - pin.skew(self.__omega_hat) @ ee_positions[key],
+                        self.__SE3_imu_to_base.rotation @ self.__omega_hat,
+                    )
+                    measured_frame_velocity[
+                        i : i + 3
+                    ] = self.__SE3_base_to_imu.act(base_motion).linear
                 else:
                     measured_frame_velocity[i : i + 3] = (
                         -ee_velocities[key]

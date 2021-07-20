@@ -192,8 +192,8 @@ public:
 
     /**
      * @brief Get measurement.
-     * 
-     * @param root_velocities 
+     *
+     * @param root_velocities
      */
     void get_measurement(
         std::vector<Eigen::Vector3d,
