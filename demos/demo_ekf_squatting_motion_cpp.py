@@ -147,7 +147,6 @@ class SimuController(object):
         self.out_base_rpy = pinocchio.utils.matrixToRpy(
             pinocchio.Quaternion(quat_base).matrix()
         )
-        return
 
 
 class DataCollection(object):
@@ -341,9 +340,9 @@ def demo(robot_name, nb_iteration):
         logger.collect_data("ekf_base_pos", i, q_ekf[:3])
         logger.collect_data("ekf_base_vel", i, dq_ekf[:3])
         logger.collect_data("ekf_base_rpy", i, rpy_base_ekf)
-        for ee in range(len(root_velocities)):
+        for ee, vel in enumerate(root_velocities):
             logger.collect_data(
-                "ekf_root_velocities[" + str(ee) + "]", i, root_velocities[ee]
+                "ekf_root_velocities[" + str(ee) + "]", i, vel
             )
 
     logger.dump_data()
