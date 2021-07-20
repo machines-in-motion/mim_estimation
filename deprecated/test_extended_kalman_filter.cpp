@@ -86,7 +86,7 @@ TEST_F(TestEKF, simple_1d_ekf_test)
         input_pos(0, 0) = dr.getValue(i, input_pose_id);
         ekf_1d.update(input_pos, true);
         dc.updateDataCollection();
-        output_pos = ekf_1d.getFilterState()(0, 0);
+        output_pos = ekf_1d.get_filter_state()(0, 0);
         output_pos_ref = dr.getValue(i, output_pose_id);
         ASSERT_NEAR(output_pos, output_pos_ref, 1e-6);
     }

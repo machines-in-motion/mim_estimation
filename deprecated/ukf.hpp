@@ -40,20 +40,20 @@ public:
     {
     }
     void update(void);
-    virtual Eigen::Matrix<double, N, 1> getFilterState(void) = 0;
-    void printDebug(void);
+    virtual Eigen::Matrix<double, N, 1> get_filter_state(void) = 0;
+    void print_debug(void);
 
 protected:
     S state_pre_, state_post_;
     M meas_actual_, meas_pred_;
 
-    virtual Eigen::Matrix<double, N, 1> processModel(S &s) = 0;
-    virtual Eigen::Matrix<double, K, 1> measModel(S &s) = 0;
-    virtual void formProcessJacobian(void) = 0;
-    virtual void formProcessNoise(void) = 0;
-    virtual void formNoiseJacobian(void) = 0;
-    virtual void formMeasNoise(void) = 0;
-    virtual void formActualMeas(void) = 0;
+    virtual Eigen::Matrix<double, N, 1> process_model(S &s) = 0;
+    virtual Eigen::Matrix<double, K, 1> measurement_model(S &s) = 0;
+    virtual void form_process_jacobian(void) = 0;
+    virtual void form_process_noise(void) = 0;
+    virtual void form_noise_jacobian(void) = 0;
+    virtual void form_measurement_noise(void) = 0;
+    virtual void form_actual_measurement(void) = 0;
 
     Eigen::MatrixXd proc_jac_;
     Eigen::MatrixXd proc_jac_disc_;

@@ -56,7 +56,7 @@ namespace standard_filters
  * \f$. The equation of the EKF routine are defined with the "update_filter"
  *  function.
  *
- *  The mapping between the variable names and this peace of documentation is
+ *  The mapping between the variable names and this piece of documentation is
  *  done next to each variable.
  *
  */

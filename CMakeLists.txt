@@ -18,12 +18,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 #
 # Dependencies
 #
+
+# Local depends always first to find the proper python version.
+find_package(mpi_cmake_modules REQUIRED)
+find_package(yaml_utils REQUIRED)
+
+# External dependencies
 find_package(pinocchio 2.0.0 REQUIRED)
+find_package(pybind11 REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-# local depends
-find_package(yaml_utils REQUIRED)
-find_package(mpi_cmake_modules REQUIRED)
+# Special case: Boost python
+include(cmake/boost_python.cmake)
+search_for_boost_python()
 
 #
 # Build main library and binaries
@@ -38,7 +45,7 @@ set(all_targets)
 
 # define the source files
 set(${PROJECT_NAME}_SRC_FILES
-    src/ekf_vicon_imu.cpp #
+    src/base_ekf_with_imu_kin.cpp #
     src/end_effector_force_estimator.cpp #
     src/io_tools/data_collector.cpp #
     src/io_tools/data_reader.cpp #
@@ -57,16 +64,35 @@ target_include_directories(
 list(APPEND all_targets ${PROJECT_NAME})
 
 #
+# Python Bindings
+#
+pybind11_add_module(
+  ${PROJECT_NAME}_cpp MODULE #
+  srcpy/${PROJECT_NAME}.cpp #
+  srcpy/base_ekf_with_imu_kin.cpp #
+)
+# cmake-format: on
+target_link_libraries(${PROJECT_NAME}_cpp PRIVATE pybind11::module)
+target_link_libraries(${PROJECT_NAME}_cpp PRIVATE ${PROJECT_NAME})
+target_link_boost_python(${PROJECT_NAME}_cpp PRIVATE)
+
+# install the bindings
+get_python_install_dir(PYTHON_INSTALL_DIR)
+install(TARGETS ${PROJECT_NAME}_cpp DESTINATION ${PYTHON_INSTALL_DIR})
+
+#
 # Tests.
 #
-include(CTest)
 if(BUILD_TESTING)
+  # Get the CTest framework
+  include(CTest)
   # C++ unit-tests framework used.
   find_package(GTest CONFIG REQUIRED)
   include(GoogleTest)
   # List of all C++ tests.
-  set(unit_tests test_butterworth_filter test_ekf_vicon_imu
-                 test_extended_kalman_filter test_end_effector_force_estimator)
+  set(unit_tests #
+      test_butterworth_filter #
+      test_end_effector_force_estimator)
   # Config folder
   get_filename_component(CONFIG_PATH config ABSOLUTE)
   # Create all C++ tests.
@@ -76,27 +102,11 @@ if(BUILD_TESTING)
     # link to the created librairies and its dependencies
     target_link_libraries(${unit_test} ${PROJECT_NAME} GTest::gtest)
     # create 2 macro: the path to the config file and the path to the data file
-    target_compile_definitions(
-      ${unit_test}
-      PUBLIC
-        CONFIG_PATH="${CONFIG_PATH}"
-        TEST_PARAMETER_YAML_FILE_PATH="${CONFIG_PATH}/test_vicon_base_state_estimator.yaml"
-        TEST_DATA_FILE_PATH="${CONFIG_PATH}/test_vicon_base_state_estimator.dat"
-    )
+    target_compile_definitions(${unit_test} PUBLIC CONFIG_PATH="${CONFIG_PATH}")
     # declare the test as gtest
     gtest_add_tests(TARGET ${unit_test})
   endforeach(unit_test ${unit_tests})
 endif()
-
-#
-# Demo
-#
-
-# estimator based on IMU and Vicon
-add_executable(demo_ekf_vicon_imu demos/demo_ekf_vicon_imu.cpp)
-target_link_libraries(demo_ekf_vicon_imu ${PROJECT_NAME})
-# export the executable
-list(APPEND all_targets demo_ekf_vicon_imu)
 
 #
 # building documentation

@@ -146,12 +146,18 @@ def demo(robot_name, sim_time):
             if solo_ekf.get_ekf_frame():
                 solo_ekf.set_mu_post("ekf_frame_position", imu_frame_pos)
                 solo_ekf.set_mu_post("ekf_frame_velocity", imu_frame_vel)
-                ekf_orien = pin.Quaternion(q[3:7]).matrix() @ robot.rot_base_to_imu.T
-                solo_ekf.set_mu_post("ekf_frame_orientation", pin.Quaternion(ekf_orien))
+                ekf_orien = (
+                    pin.Quaternion(q[3:7]).matrix() @ robot.rot_base_to_imu.T
+                )
+                solo_ekf.set_mu_post(
+                    "ekf_frame_orientation", pin.Quaternion(ekf_orien)
+                )
             else:
                 solo_ekf.set_mu_post("ekf_frame_position", q[:3])
                 solo_ekf.set_mu_post("ekf_frame_velocity", dq[:3])
-                solo_ekf.set_mu_post("ekf_frame_orientation", pin.Quaternion(q[3:7]))
+                solo_ekf.set_mu_post(
+                    "ekf_frame_orientation", pin.Quaternion(q[3:7])
+                )
 
         # EKF prediction step
         solo_ekf.integrate_model(
@@ -167,7 +173,9 @@ def demo(robot_name, sim_time):
         if solo_ekf.get_ekf_frame():
             frame_pos[i, :] = imu_frame_pos
             frame_vel[i, :] = imu_frame_vel
-            frame_rot = pin.Quaternion(q[3:7]).matrix() @ robot.rot_base_to_imu.T
+            frame_rot = (
+                pin.Quaternion(q[3:7]).matrix() @ robot.rot_base_to_imu.T
+            )
             frame_rpy[i, :] = pin.utils.matrixToRpy(frame_rot)
         else:
             frame_pos[i, :] = q[:3]

@@ -14,6 +14,7 @@ def read_data(file_name):
     data = np.loadtxt(file_name)
     return data[:T, 1:]
 
+
 def plot(x, y, x_label, y_label, title):
     t = np.arange(T)
     string = "XYZ"
@@ -25,7 +26,8 @@ def plot(x, y, x_label, y_label, title):
         plt.grid()
     plt.legend(loc="upper right", shadow=True, fontsize="large")
     plt.xlabel("time(ms)")
-    plt.suptitle(title) 
+    plt.suptitle(title)
+
 
 def run_ekf(path):
     # Read the data from robot motion
@@ -48,7 +50,9 @@ def run_ekf(path):
     solo_ekf = EKF(conf)
     solo_ekf.set_mu_post("ekf_frame_position", base_position[0, :3])
     solo_ekf.set_mu_post("ekf_frame_velocity", base_velocity_body[0, :3])
-    solo_ekf.set_mu_post("ekf_frame_orientation", pin.Quaternion(base_position[0, 3:]))
+    solo_ekf.set_mu_post(
+        "ekf_frame_orientation", pin.Quaternion(base_position[0, 3:])
+    )
 
     for i in range(T):
         # Run the EKF prediction step
@@ -66,11 +70,11 @@ def run_ekf(path):
         base_pos_ekf[i, :] = base_state_post.get("ekf_frame_position")
         base_vel_ekf[i, :] = base_state_post.get("ekf_frame_velocity")
         q_ekf = base_state_post.get("ekf_frame_orientation")
-        base_rpy_ekf[i, :] = pin.utils.matrixToRpy(q_ekf.matrix()) * (180/pi)
-        
+        base_rpy_ekf[i, :] = pin.utils.matrixToRpy(q_ekf.matrix()) * (180 / pi)
+
         # Read the value of orientation from the robot
         q_base = pin.Quaternion(base_position[i, 3:])
-        base_rpy[i, :] = pin.utils.matrixToRpy(q_base.matrix()) * (180/pi)
+        base_rpy[i, :] = pin.utils.matrixToRpy(q_base.matrix()) * (180 / pi)
 
     # Plot the results
     plt.figure("Position")
@@ -80,7 +84,13 @@ def run_ekf(path):
     plot(base_velocity_body, base_vel_ekf, "Vicon", "EKF", "Base_Velocity")
 
     plt.figure("Orientation")
-    plot(base_rpy, base_rpy_ekf, "Vicon", "EKF", "Base_Orientation(roll-pitch-yaw)_degree")
+    plot(
+        base_rpy,
+        base_rpy_ekf,
+        "Vicon",
+        "EKF",
+        "Base_Orientation(roll-pitch-yaw)_degree",
+    )
 
     plt.show()
 

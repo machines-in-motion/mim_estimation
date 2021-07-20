@@ -100,7 +100,7 @@ void DataReader::read(const std::string& fname)
 
 int DataReader::getIndex(const std::string& name)
 {
-    for (int i = 0; i < var_names_.size(); ++i)
+    for (std::size_t i = 0; i < var_names_.size(); ++i)
         if (var_names_[i] == name) return i;
     throw std::runtime_error("cannot find " + name + " in data");
 }
@@ -109,7 +109,7 @@ void DataReader::getIndexes(const std::vector<std::string>& stream_names,
                             std::vector<int>& indexes)
 {
     indexes.resize(stream_names.size());
-    for (int i = 0; i < stream_names.size(); ++i)
+    for (std::size_t i = 0; i < stream_names.size(); ++i)
     {
         indexes[i] = getIndex(stream_names[i]);
     }
@@ -159,8 +159,7 @@ void DataReader::fillVector(int row,
                             const std::vector<int>& index,
                             Eigen::Ref<Eigen::VectorXd> vec)
 {
-    assert(index.size() == vec.size());
-    if (index.size() != vec.size())
+    if (index.size() != static_cast<std::size_t>(vec.size()))
     {
         std::stringstream error;
         error << "The number the index vector (" << index.size()
