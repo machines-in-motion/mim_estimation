@@ -38,9 +38,8 @@ def main(argv):
     forces = forces[:max_time, :]
 
     # reconstruct the vectors.
-    joint_positions[:, 0] = height_sensor[:, 1]
-    joint_torques[:, 1:3] = joint_torques[:, 1:]
-    joint_torques[:, 0].fill(0.0)
+    joint_positions = joint_positions[:, 1:]
+    joint_torques = joint_torques[:, 1:]
     forces = forces[:, 1:]
 
     # Robot model.
@@ -48,7 +47,9 @@ def main(argv):
 
     # Create the estimator.
     ee_force_estimator = EndEffectorForceEstimator()
-    ee_force_estimator.initialize(robot_config.urdf_path, ["contact"])
+    ee_force_estimator.initialize(
+        robot_config.urdf_path_no_prismatic, ["contact"]
+    )
 
     print(ee_force_estimator.has_free_flyer())
 

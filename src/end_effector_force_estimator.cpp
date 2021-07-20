@@ -95,7 +95,7 @@ void EndEffectorForceEstimator::run(const Eigen::VectorXd& joint_positions,
                                     contact_jacobians_[frame_index]);
 
         end_effector_forces_[frame_index].head<3>() =
-            solve(contact_jacobians_[frame_index]
+            - solve(contact_jacobians_[frame_index]
                       .topRows<3>()
                       .rightCols(nb_joint_)
                       .transpose(),
