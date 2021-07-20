@@ -94,10 +94,10 @@ public:
         vicon_bse_->initialize(input_vicon_base_pose_);
         // get the state after initialization
         vicon_bse_->get_filter_state(output_imu_position_,
-                                   output_imu_orientation_,
-                                   output_imu_linear_velocity_,
-                                   output_accel_bias_,
-                                   output_gyro_bias_);
+                                     output_imu_orientation_,
+                                     output_imu_linear_velocity_,
+                                     output_accel_bias_,
+                                     output_gyro_bias_);
 
         vicon_bse_->getBaseFromFilterState(output_base_position_,
                                            output_base_orientation_,
@@ -132,10 +132,10 @@ public:
                                input_vicon_base_pose_,
                                input_vicon_is_new_frame_);
             vicon_bse_->get_filter_state(output_imu_position_,
-                                       output_imu_orientation_,
-                                       output_imu_linear_velocity_,
-                                       output_accel_bias_,
-                                       output_gyro_bias_);
+                                         output_imu_orientation_,
+                                         output_imu_linear_velocity_,
+                                         output_accel_bias_,
+                                         output_gyro_bias_);
             output_imu_angular_velocty_ = input_gyroscope_ - output_gyro_bias_;
             vicon_bse_->getBaseFromFilterState(output_base_position_,
                                                output_base_orientation_,

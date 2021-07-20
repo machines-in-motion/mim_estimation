@@ -167,9 +167,11 @@ py::object get_imu_in_base(BaseEkfWithImuKinSettings& obj)
     return BoostPython::cpp_to_pybind(obj.imu_in_base);
 }
 
-std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > get_measurement(BaseEkfWithImuKin& obj)
+std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >
+get_measurement(BaseEkfWithImuKin& obj)
 {
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > tmp;
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >
+        tmp;
     obj.get_measurement(tmp);
     return tmp;
 }
@@ -200,7 +202,8 @@ void bind_base_ekf_with_imu_kin(py::module& module)
     py::class_<BaseEkfWithImuKin>(module, "BaseEkfWithImuKin")
         .def(py::init<>())
         // Public methods.
-        .def("initialize", &BaseEkfWithImuKin::initialize,
+        .def("initialize",
+             &BaseEkfWithImuKin::initialize,
              "Get the EKF settings and initialize the filter from them.")
         .def("set_initial_state",
              static_cast<void(

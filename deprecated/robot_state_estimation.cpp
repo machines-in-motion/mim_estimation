@@ -117,10 +117,10 @@ void RobotStateEstimation::initialize(
             Eigen::Vector3d vicon_bse_base_vel, vicon_bse_accel_bias,
                 vicon_bse_gyro_bias;
             vicon_bse_.get_filter_state(init_posture.base_position_,
-                                      vicon_bse_base_vel,
-                                      init_posture.base_orientation_,
-                                      vicon_bse_accel_bias,
-                                      vicon_bse_gyro_bias);
+                                        vicon_bse_base_vel,
+                                        init_posture.base_orientation_,
+                                        vicon_bse_accel_bias,
+                                        vicon_bse_gyro_bias);
             floor_tf_.setIdentity();
             floor_tf_(2, 3) = vicon_bse_.getFloorHeight();
         }
@@ -360,10 +360,10 @@ void RobotStateEstimation::update_vicon_base_state_ekf()
     Eigen::Vector3d vicon_bse_base_vel, vicon_bse_accel_bias,
         vicon_bse_gyro_bias;
     vicon_bse_.get_filter_state(filtered_posture_.base_position_,
-                              vicon_bse_base_vel,
-                              filtered_posture_.base_orientation_,
-                              vicon_bse_accel_bias,
-                              vicon_bse_gyro_bias);
+                                vicon_bse_base_vel,
+                                filtered_posture_.base_orientation_,
+                                vicon_bse_accel_bias,
+                                vicon_bse_gyro_bias);
     filtered_velocity_.base_linear_velocity() = vicon_bse_base_vel;
     filtered_velocity_.base_angular_velocity() =
         unfiltered_imu_->data().gyroscope() - vicon_bse_gyro_bias;
