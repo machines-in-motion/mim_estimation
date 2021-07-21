@@ -45,6 +45,7 @@ set(all_targets)
 
 # define the source files
 set(${PROJECT_NAME}_SRC_FILES
+    src/robot_state_estimator.cpp
     src/base_ekf_with_imu_kin.cpp #
     src/end_effector_force_estimator.cpp #
     src/io_tools/data_collector.cpp #
@@ -69,9 +70,11 @@ list(APPEND all_targets ${PROJECT_NAME})
 pybind11_add_module(
   ${PROJECT_NAME}_cpp
   MODULE #
+  srcpy/boost_python_compatibility.hpp
   srcpy/${PROJECT_NAME}.cpp #
   srcpy/base_ekf_with_imu_kin.cpp #
   srcpy/end_effector_force_estimator.cpp #
+  srcpy/robot_state_estimator.cpp
 )
 # cmake-format: on
 target_link_libraries(${PROJECT_NAME}_cpp PRIVATE pybind11::module)
