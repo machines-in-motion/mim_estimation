@@ -21,10 +21,10 @@ def box_minus(R_plus, R):
     return pin.log(R.T @ R_plus)
 
 
-class EKF:
+class EKF(object):
     """EKF class for estimation of the position, velocity, orientation of the EKF_frame on the robot, and IMU bias_linear_acceleration and bias_angular_rate.
-    EKF_frame can be defined in the Base or IMU frame. Position and orientation are expressed in the world, velocity is expressed in the EKF_frame,
-    and bias terms are expressed in the IMU frame.
+    Measurement model is base_velocity, from kinematics of feet in contact. EKF_frame can be defined in the Base or IMU frame. Position and 
+    orientation are expressed in the world, velocity is expressed in the EKF_frame, and bias terms are expressed in the IMU frame.
     
     Attributes:
         robot : obj:'pinocchio.RobotWrapper'
@@ -78,7 +78,7 @@ class EKF:
         self.__robot = robex.load(conf.robot_name)
         self.__rmodel = self.__robot.model
         self.__rdata = self.__rmodel.createData()
-        self.__nx = 5 * 3
+        self._nx = 5 * 3
         self.__init_robot_config = np.copy(self.__robot.q0)
         self.__dt = dt
         self.__g_vector = np.array([0, 0, -9.81])
@@ -103,8 +103,8 @@ class EKF:
                 "imu_bias_orientation",
             ]
         )
-        self.__Sigma_pre = np.zeros((self.__nx, self.__nx))
-        self.__Sigma_post = np.zeros((self.__nx, self.__nx))
+        self._Sigma_pre = np.zeros((self._nx, self._nx))
+        self._Sigma_post = np.zeros((self._nx, self._nx))
         self.__omega_hat = np.zeros(3)
         self.__omega_base_prev = np.zeros(3)
         self.__base_ang_acc = np.zeros(3)
@@ -114,7 +114,7 @@ class EKF:
         self.__Q_omega = self.__dt * conf.Q_omega
         self.__Qb_a = conf.Qb_a
         self.__Qb_omega = conf.Qb_omega
-        self.__R = conf.R
+        self._R = conf.R
         # call private methods
         self.__init_filter()
 
@@ -356,7 +356,7 @@ class EKF:
             np.array(15,15)
         """  
         dt, g = self.__dt, self.__g_vector
-        Fc = np.zeros((self.__nx, self.__nx), dtype=float)
+        Fc = np.zeros((self._nx, self._nx), dtype=float)
         mu_pre = self.get_mu_pre()
         q_pre = mu_pre["ekf_frame_orientation"]
         v_pre = mu_pre["ekf_frame_velocity"]
@@ -373,7 +373,7 @@ class EKF:
         # dtheta/ddelta_x
         Fc[6:9, 6:9] = -pin.skew(omega_hat)
         Fc[6:9, 12:15] = -np.eye(3)
-        Fk = np.eye(self.__nx) + Fc * dt
+        Fk = np.eye(self._nx) + Fc * dt
         return Fk
 
     def compute_noise_jacobian(self):
@@ -383,7 +383,7 @@ class EKF:
             np.array(15,12)
         """  
         v_pre = self.__mu_pre["ekf_frame_velocity"]
-        Lc = np.zeros((self.__nx, self.__nx - 3), dtype=float)
+        Lc = np.zeros((self._nx, self._nx - 3), dtype=float)
         Lc[3:6, 0:3] = -np.eye(3)
         Lc[3:6, 3:6] = -pin.skew(v_pre)
         Lc[6:9, 3:6] = -np.eye(3)
@@ -397,7 +397,7 @@ class EKF:
         Returns:
             np.array(12,12)
         """  
-        Qc = np.zeros((self.__nx - 3, self.__nx - 3), dtype=float)
+        Qc = np.zeros((self._nx - 3, self._nx - 3), dtype=float)
         Qc[0:3, 0:3] = self.__Q_a
         Qc[3:6, 3:6] = self.__Q_omega
         Qc[6:9, 6:9] = self.__Qb_a
@@ -425,7 +425,7 @@ class EKF:
         Returns:
             np.array(12,12)
         """ 
-        return (1 / self.__dt) * self.__R
+        return (1 / self.__dt) * self._R
 
     def prediction_step(self):
         """Calculates the 'a priori error covariance matrix' in the prediction step.
@@ -434,7 +434,7 @@ class EKF:
         Lc = self.compute_noise_jacobian()
         Qc = self.construct_continuous_noise_covariance()
         Qk = self.construct_discrete_noise_covariance(Fk, Lc, Qc)
-        self.__Sigma_pre = (Fk @ self.__Sigma_post @ Fk.T) + Qk
+        self._Sigma_pre = (Fk @ self._Sigma_post @ Fk.T) + Qk
 
     # assuming contact logic variables coming from the contact schedule for now
     # TODO contact logic prediction using a probabilistic model
@@ -452,7 +452,7 @@ class EKF:
             np.array(12,15): Discrete measurement jacobian matrix.
             np.array(12,): Measurement residual.
         """
-        Hk = np.zeros((12, self.__nx))  # 12x15
+        Hk = np.zeros((12, self._nx))
         predicted_frame_velocity = np.zeros(12)
         measured_frame_velocity = np.zeros(12)
         # end effectors frame positions and velocities expressed in the base frame
@@ -498,13 +498,13 @@ class EKF:
         Returns:
             np.array(12,12)
         """
-        return (Hk @ self.__Sigma_pre @ Hk.T) + Rk
+        return (Hk @ self._Sigma_pre @ Hk.T) + Rk
 
     def update_step(
         self, contacts_schedule, joint_positions, joint_velocities
     ):
         """Calculates the 'a posteriori error covariance matrix' and the 'a posteriori estimate of the mean of the state vector',
-            based on new kinematic measurements.
+            based on new kinematic measurements from feet in contact.
 
         Args:
             contacts_schedule (dic): Logical contact schedule of the feet.
@@ -518,9 +518,9 @@ class EKF:
         )
         Rk = self.construct_discrete_measurement_noise_covariance()
         Sk = self.compute_innovation_covariance(Hk, Rk)
-        K = (self.__Sigma_pre @ Hk.T) @ inv(Sk)  # kalman gain
+        K = (self._Sigma_pre @ Hk.T) @ inv(Sk)  # kalman gain
         delta_x = K @ measurement_error
-        self.__Sigma_post = (np.eye(self.__nx) - (K @ Hk)) @ self.__Sigma_pre
+        self._Sigma_post = (np.eye(self._nx) - (K @ Hk)) @ self._Sigma_pre
         self.__mu_post["ekf_frame_position"] = (
             self.__mu_pre["ekf_frame_position"] + delta_x[0:3]
         )
@@ -535,6 +535,70 @@ class EKF:
         )
         self.__mu_post["imu_bias_orientation"] = (
             self.__mu_pre["imu_bias_orientation"] + delta_x[12:15]
+        )
+
+
+class EKF_VICON(EKF):
+    """EKF subclass; measurement model is base_position, from Vicon data.
+    Attributes:
+        R : np.array(3,3)
+            Continuous measurement noise covariance. 
+    """
+
+    def __init__(self, conf, dt = 0.001):
+        super().__init__(conf, dt=dt)
+        self._R = np.diag((1e-12) * np.ones(3))
+
+    def measurement_model(self, vicon_base_position):
+        """Returns the discrete measurement jacobian matrix and the measurement residual.
+
+        Args:
+            vicon_base_position (np.array(3,3)): Base position from vicon.
+
+        Returns:
+            np.array(3,15): Discrete measurement jacobian matrix.
+            np.array(3,): Measurement residual.
+        """
+        Hk = np.zeros((3, self._nx))
+        predicted_frame_position = np.zeros(3)
+        measured_frame_position = np.zeros(3)
+        # compute measurement jacobian
+        Hk[0:3, 0:3] = np.eye(3)
+        predicted_frame_position = self.get_mu_pre().get("ekf_frame_position")
+        measured_frame_position = vicon_base_position
+        error = measured_frame_position - predicted_frame_position
+        return Hk, error
+
+    def update_step(self, vicon_base_position):
+        """Calculates the 'a posteriori error covariance matrix' and the 'a posteriori estimate of the mean of the state vector',
+            based on new base_position measurement from vicon.
+
+        Args:
+            vicon_base_position (np.array(3,3)): Base position from vicon.
+        """
+        mu_pre = self.get_mu_pre()
+        q_pre = mu_pre.get("ekf_frame_orientation")
+        R_pre = q_pre.matrix()
+        Hk, measurement_error = self.measurement_model(vicon_base_position)
+        Rk = self.construct_discrete_measurement_noise_covariance()
+        Sk = self.compute_innovation_covariance(Hk, Rk)
+        K = (self._Sigma_pre @ Hk.T) @ inv(Sk)  # kalman gain
+        delta_x = K @ measurement_error
+        self._Sigma_post = (np.eye(self._nx) - (K @ Hk)) @ self._Sigma_pre
+        self.set_mu_post(
+            "ekf_frame_position", mu_pre.get("ekf_frame_position") + delta_x[0:3]
+        )
+        self.set_mu_post(
+            "ekf_frame_velocity", mu_pre.get("ekf_frame_velocity") + delta_x[3:6]
+        )
+        self.set_mu_post(
+            "ekf_frame_orientation", Quaternion(box_plus(R_pre, delta_x[6:9]))
+        )
+        self.set_mu_post(
+            "imu_bias_acceleration", mu_pre.get("imu_bias_acceleration") + delta_x[9:12]
+        )
+        self.set_mu_post(
+            "imu_bias_orientation", mu_pre.get("imu_bias_orientation") + delta_x[12:15]
         )
 
 
