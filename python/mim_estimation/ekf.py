@@ -538,7 +538,7 @@ class EKF(object):
         )
 
 
-class EKF_VICON(EKF):
+class EKF_Vicon(EKF):
     """EKF subclass; measurement model is base_position, from Vicon data.
     Attributes:
         R : np.array(3,3)

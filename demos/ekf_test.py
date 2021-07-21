@@ -4,7 +4,7 @@ Modify the 'path' variable to the path where the data is located.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from mim_estimation.ekf import EKF, EKF_VICON
+from mim_estimation.ekf import EKF, EKF_Vicon
 import mim_estimation.conf as conf
 import pinocchio as pin
 from math import pi
@@ -53,11 +53,11 @@ def run_ekf(path):
     solo_ekf.set_mu_post("ekf_frame_velocity", base_velocity_body[0, :3])
     solo_ekf.set_mu_post("ekf_frame_orientation", pin.Quaternion(base_position[0, 3:]))
 
-    solo_ekf_vicon = EKF_VICON(conf)
+    solo_ekf_vicon = EKF_Vicon(conf)
     solo_ekf_vicon.set_mu_post("ekf_frame_position", base_position[0, :3])
     solo_ekf_vicon.set_mu_post("ekf_frame_velocity", base_velocity_body[0, :3])
     solo_ekf_vicon.set_mu_post("ekf_frame_orientation", pin.Quaternion(base_position[0, 3:]))
-    solo_ekf_vicon.set_ekf_in_imu_frame(True)
+
     for i in range(T):
         # Run the EKF prediction step
         solo_ekf.integrate_model(imu_lin_acc[i, :], imu_ang_vel[i, :])
