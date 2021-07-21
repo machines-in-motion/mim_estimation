@@ -4,7 +4,7 @@ Modify the 'path' variable to the path where the data is located.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from mim_estimation.ekf import EKF
+from mim_estimation.ekf import EKF, EKF_VICON
 import mim_estimation.conf as conf
 import pinocchio as pin
 from math import pi
@@ -39,53 +39,80 @@ def run_ekf(path):
     )
 
     # Initialize vectors for data collecting
-    base_pos_ekf = np.zeros((T, 3), float)
-    base_vel_ekf = np.zeros((T, 3), float)
-    base_rpy_ekf = np.zeros((T, 3), float)
+    ekf_pos = np.zeros((T, 3), float)
+    ekf_vel = np.zeros((T, 3), float)
+    ekf_rpy = np.zeros((T, 3), float)
+    ekf_vicon_pos = np.zeros((T, 3), float)
+    ekf_vicon_vel = np.zeros((T, 3), float)
+    ekf_vicon_rpy = np.zeros((T, 3), float)
     base_rpy = np.zeros((T, 3), float)
 
-    # Create EKF instance and set the initial values
+    # Create EKF instances and set the initial values
     solo_ekf = EKF(conf)
     solo_ekf.set_mu_post("ekf_frame_position", base_position[0, :3])
     solo_ekf.set_mu_post("ekf_frame_velocity", base_velocity_body[0, :3])
     solo_ekf.set_mu_post("ekf_frame_orientation", pin.Quaternion(base_position[0, 3:]))
 
+    solo_ekf_vicon = EKF_VICON(conf)
+    solo_ekf_vicon.set_mu_post("ekf_frame_position", base_position[0, :3])
+    solo_ekf_vicon.set_mu_post("ekf_frame_velocity", base_velocity_body[0, :3])
+    solo_ekf_vicon.set_mu_post("ekf_frame_orientation", pin.Quaternion(base_position[0, 3:]))
+    solo_ekf_vicon.set_ekf_in_imu_frame(True)
     for i in range(T):
         # Run the EKF prediction step
         solo_ekf.integrate_model(imu_lin_acc[i, :], imu_ang_vel[i, :])
         solo_ekf.prediction_step()
+        solo_ekf_vicon.integrate_model(imu_lin_acc[i, :], imu_ang_vel[i, :])
+        solo_ekf_vicon.prediction_step()
 
         # Run the EKF update step with all feet in contact
         contacts_schedule = {"FL": True, "FR": True, "HL": True, "HR": True}
         solo_ekf.update_step(
             contacts_schedule, joint_positions[i, :], joint_velocities[i, :]
         )
+        solo_ekf_vicon.update_step(base_position[i, :3])
 
         # Read the values of position, velocity and orientation from EKF
-        base_state_post = solo_ekf.get_mu_post()
-        base_pos_ekf[i, :] = base_state_post.get("ekf_frame_position")
-        base_vel_ekf[i, :] = base_state_post.get("ekf_frame_velocity")
-        q_ekf = base_state_post.get("ekf_frame_orientation")
-        base_rpy_ekf[i, :] = pin.utils.matrixToRpy(q_ekf.matrix()) * (180/pi)
+        ekf_state_post = solo_ekf.get_mu_post()
+        ekf_pos[i, :] = ekf_state_post.get("ekf_frame_position")
+        ekf_vel[i, :] = ekf_state_post.get("ekf_frame_velocity")
+        q_ekf = ekf_state_post.get("ekf_frame_orientation")
+        ekf_rpy[i, :] = pin.utils.matrixToRpy(q_ekf.matrix()) * (180/pi)
+
+        ekf_vicon_state_post = solo_ekf_vicon.get_mu_post()
+        ekf_vicon_pos[i, :] = ekf_vicon_state_post.get("ekf_frame_position")
+        ekf_vicon_vel[i, :] = ekf_vicon_state_post.get("ekf_frame_velocity")
+        q_ekf = ekf_vicon_state_post.get("ekf_frame_orientation")
+        ekf_vicon_rpy[i, :] = pin.utils.matrixToRpy(q_ekf.matrix()) * (180/pi)
         
         # Read the value of orientation from the robot
         q_base = pin.Quaternion(base_position[i, 3:])
         base_rpy[i, :] = pin.utils.matrixToRpy(q_base.matrix()) * (180/pi)
 
-    # Plot the results
-    plt.figure("Position")
-    plot(base_position, base_pos_ekf, "Vicon", "EKF", "Base_Position")
+    # Plot the results from feet_kinematics measurement
+    plt.figure("Position(Feet_Kin)")
+    plot(base_position, ekf_pos, "Vicon", "EKF", "Base_Position")
 
-    plt.figure("Velocity")
-    plot(base_velocity_body, base_vel_ekf, "Vicon", "EKF", "Base_Velocity")
+    plt.figure("Velocity(Feet_Kin)")
+    plot(base_velocity_body, ekf_vel, "Vicon", "EKF", "Base_Velocity")
 
-    plt.figure("Orientation")
-    plot(base_rpy, base_rpy_ekf, "Vicon", "EKF", "Base_Orientation(roll-pitch-yaw)_degree")
+    plt.figure("Orientation(Feet_Kin)")
+    plot(base_rpy, ekf_rpy, "Vicon", "EKF", "Base_Orientation(roll-pitch-yaw)_degree")
+
+    # Plot the results from vicon measurement
+    plt.figure("Position(Vicon)")
+    plot(base_position, ekf_vicon_pos, "Vicon", "EKF", "Base_Position")
+
+    plt.figure("Velocity(Vicon)")
+    plot(base_velocity_body, ekf_vicon_vel, "Vicon", "EKF", "Base_Velocity")
+
+    plt.figure("Orientation(Vicon)")
+    plot(base_rpy, ekf_vicon_rpy, "Vicon", "EKF", "Base_Orientation(roll-pitch-yaw)_degree")
 
     plt.show()
 
 
 if __name__ == "__main__":
-    path = "/home/Documents/files/files_first_wobbling/"
+    path = "/home/skhorshidi/Documents/files/files_first_wobbling/"
     T = 35000
     run_ekf(path)
