@@ -8,46 +8,16 @@
  */
 
 #include "boost_python_compatibility.hpp"
-#include "mim_estimation/base_ekf_with_imu_kin.hpp"
-
-#include <pybind11/eigen.h>
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include "mim_estimation/robot_state_estimator.hpp"
 
 namespace py = pybind11;
 
 namespace mim_estimation
 {
-void set_pinocchio_model(BaseEkfWithImuKinSettings& obj, py::object py_src)
-{
-    obj.pinocchio_model = BoostPython::pybind_to_cpp<pinocchio::Model>(py_src);
-}
-py::object get_pinocchio_model(BaseEkfWithImuKinSettings& obj)
-{
-    return BoostPython::cpp_to_pybind(obj.pinocchio_model);
-}
-void set_imu_in_base(BaseEkfWithImuKinSettings& obj, py::object py_src)
-{
-    obj.imu_in_base = BoostPython::pybind_to_cpp<pinocchio::SE3>(py_src);
-}
-py::object get_imu_in_base(BaseEkfWithImuKinSettings& obj)
-{
-    return BoostPython::cpp_to_pybind(obj.imu_in_base);
-}
 
-std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >
-get_measurement(BaseEkfWithImuKin& obj)
+void bind_robot_state_estimator(py::module& module)
 {
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >
-        tmp;
-    obj.get_measurement(tmp);
-    return tmp;
-}
-
-void bind_base_ekf_with_imu_kin(py::module& module)
-{
-    py::class_<BaseEkfWithImuKinSettings>(module, "BaseEkfWithImuKinSettings")
+    py::class_<RobotStateEstimatorSettings>(module, "BaseEkfWithImuKinSettings")
         .def(py::init<>())
         .def_readwrite("is_imu_frame", &BaseEkfWithImuKinSettings::is_imu_frame)
         .def_readwrite("end_effector_frame_names",
