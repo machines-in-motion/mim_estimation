@@ -25,8 +25,8 @@ void bind_end_effector_force_estimator(py::module& module)
         .def("initialize", &EndEffectorForceEstimator::initialize)
         .def("run", &EndEffectorForceEstimator::run)
         .def("add_contact_frame",
-             static_cast<void(
-                 (EndEffectorForceEstimator::*)(const std::string& frame_name))>(
+             static_cast<void((
+                 EndEffectorForceEstimator::*)(const std::string& frame_name))>(
                  &EndEffectorForceEstimator::add_contact_frame))
         .def("add_contact_frame",
              static_cast<void(

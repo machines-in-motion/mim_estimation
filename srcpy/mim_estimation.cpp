@@ -11,7 +11,7 @@
 
 namespace mim_estimation
 {
-void bind_base_ekf_with_imu_kin(pybind11::module &module);
+void bind_base_ekf_with_imu_kin(pybind11::module& module);
 void bind_end_effector_force_estimator(pybind11::module& module);
 
 PYBIND11_MODULE(mim_estimation_cpp, m)
