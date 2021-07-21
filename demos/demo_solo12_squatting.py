@@ -234,17 +234,17 @@ if __name__ == "__main__":
 
     # Plot the results
     plt.figure("Position")
-    plot(frame_pos, frame_pos_ekf, "Squatting", "EKF", "EKF_Frame_Position")
+    plot(frame_pos, frame_pos_ekf, "Sim data", "EKF data", "EKF_Frame_Position")
 
     plt.figure("Velocity")
-    plot(frame_vel, frame_vel_ekf, "Squatting", "EKF", "EKF_Frame_Velocity")
+    plot(frame_vel, frame_vel_ekf, "Sim data", "EKF data", "EKF_Frame_Velocity")
 
     plt.figure("Orientation")
     plot(
         frame_rpy,
         frame_rpy_ekf,
-        "Squatting",
-        "EKF",
+        "Sim data",
+        "EKF data",
         "EKF_Frame_Orientation(roll-pitch-yaw)",
     )
 
