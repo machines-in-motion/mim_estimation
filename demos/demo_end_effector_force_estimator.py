@@ -15,9 +15,6 @@ def main(argv):
 
     # collect data
     data_folder = Path(__file__).resolve().parent / "2019-07-04_16-25-06"
-    height_sensor = genfromtxt(
-        str(data_folder / "dg_hopper_teststand-height_sensors.dat")
-    )
     joint_positions = genfromtxt(
         str(data_folder / "dg_hopper_teststand-joint_positions.dat")
     )
@@ -27,12 +24,10 @@ def main(argv):
     forces = genfromtxt(str(data_folder / "dg_hopper_teststand-ati_force.dat"))
 
     max_time = min(
-        height_sensor.shape[0],
         joint_positions.shape[0],
         joint_torques.shape[0],
         forces.shape[0],
     )
-    height_sensor = np.array(height_sensor[:max_time, :])
     joint_positions = joint_positions[:max_time, :]
     joint_torques = joint_torques[:max_time, :]
     forces = forces[:max_time, :]
