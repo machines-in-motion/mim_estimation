@@ -7,54 +7,43 @@
  * @brief Python bindings for the StepperHead class
  */
 
-#include "boost_python_compatibility.hpp"
+// clang-format off
+#include "pinocchio/bindings/python/fwd.hpp"
+#include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include "mim_estimation/base_ekf_with_imu_kin.hpp"
+// clang-format on
 
-#include <pybind11/eigen.h>
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
-namespace py = pybind11;
+using namespace boost::python;
 
 namespace mim_estimation
 {
-void set_pinocchio_model(BaseEkfWithImuKinSettings& obj, py::object py_src)
+template <class Vector>
+inline boost::python::list std_vector_to_py_list(const Vector& vector)
 {
-    obj.pinocchio_model = BoostPython::pybind_to_cpp<pinocchio::Model>(py_src);
-}
-py::object get_pinocchio_model(BaseEkfWithImuKinSettings& obj)
-{
-    return BoostPython::cpp_to_pybind(obj.pinocchio_model);
-}
-void set_imu_in_base(BaseEkfWithImuKinSettings& obj, py::object py_src)
-{
-    obj.imu_in_base = BoostPython::pybind_to_cpp<pinocchio::SE3>(py_src);
-}
-py::object get_imu_in_base(BaseEkfWithImuKinSettings& obj)
-{
-    return BoostPython::cpp_to_pybind(obj.imu_in_base);
+    typename Vector::const_iterator iter;
+    boost::python::list list;
+    for (iter = vector.begin(); iter != vector.end(); ++iter)
+    {
+        list.append(*iter);
+    }
+    return list;
 }
 
-std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >
-get_measurement(BaseEkfWithImuKin& obj)
+boost::python::list get_measurement(BaseEkfWithImuKin* obj)
 {
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >
-        tmp;
-    obj.get_measurement(tmp);
-    return tmp;
+    return std_vector_to_py_list(obj->get_measurement());
 }
 
-void bind_base_ekf_with_imu_kin(py::module& module)
+void bind_base_ekf_with_imu_kin()
 {
-    py::class_<BaseEkfWithImuKinSettings>(module, "BaseEkfWithImuKinSettings")
-        .def(py::init<>())
+    class_<BaseEkfWithImuKinSettings>("BaseEkfWithImuKinSettings")
         .def_readwrite("is_imu_frame", &BaseEkfWithImuKinSettings::is_imu_frame)
         .def_readwrite("end_effector_frame_names",
                        &BaseEkfWithImuKinSettings::end_effector_frame_names)
-        .def_property(
-            "pinocchio_model", &get_pinocchio_model, &set_pinocchio_model)
-        .def_property("imu_in_base", &get_imu_in_base, &set_imu_in_base)
+        .def_readwrite("pinocchio_model",
+                       &BaseEkfWithImuKinSettings::pinocchio_model)
+        .def_readwrite("imu_in_base", &BaseEkfWithImuKinSettings::imu_in_base)
         .def_readwrite("dt", &BaseEkfWithImuKinSettings::dt)
         .def_readwrite("noise_accelerometer",
                        &BaseEkfWithImuKinSettings::noise_accelerometer)
@@ -68,9 +57,15 @@ void bind_base_ekf_with_imu_kin(py::module& module)
                        &BaseEkfWithImuKinSettings::meas_noise_cov)
         .def("__repr__", &BaseEkfWithImuKinSettings::to_string);
 
-    py::class_<BaseEkfWithImuKin>(module, "BaseEkfWithImuKin")
-        .def(py::init<>())
-        // Public methods.
+    // for get_measurement
+    class_<std::vector<Eigen::Vector3d,
+                       Eigen::aligned_allocator<Eigen::Vector3d>>>(
+        "ListOfVector3d")
+        .def(vector_indexing_suite<
+             std::vector<Eigen::Vector3d,
+                         Eigen::aligned_allocator<Eigen::Vector3d>>>());
+
+    class_<BaseEkfWithImuKin>("BaseEkfWithImuKin")
         .def("initialize",
              &BaseEkfWithImuKin::initialize,
              "Get the EKF settings and initialize the filter from them.")
@@ -82,14 +77,15 @@ void bind_base_ekf_with_imu_kin(py::module& module)
                                         Eigen::Ref<const Eigen::Vector3d>))>(
                  &BaseEkfWithImuKin::set_initial_state),
              "Set the initial state from the base position and velocity.")
-        .def("set_initial_state",
-             static_cast<void((
-                 BaseEkfWithImuKin::*)(Eigen::Ref<
-                                           const Eigen::Matrix<double, 7, 1> >,
-                                       Eigen::Ref<const Eigen::
-                                                      Matrix<double, 6, 1> >))>(
-                 &BaseEkfWithImuKin::set_initial_state),
-             "Set the initial state from the base position and velocity.")
+        .def(
+            "set_initial_state",
+            static_cast<void((
+                BaseEkfWithImuKin::*)(Eigen::Ref<
+                                          const Eigen::Matrix<double, 7, 1>>,
+                                      Eigen::Ref<
+                                          const Eigen::Matrix<double, 6, 1>>))>(
+                &BaseEkfWithImuKin::set_initial_state),
+            "Set the initial state from the base position and velocity.")
         .def("update_filter", &BaseEkfWithImuKin::update_filter, "")
         .def("get_filter_output", &BaseEkfWithImuKin::get_filter_output, "")
         .def("get_measurement", &get_measurement, "");

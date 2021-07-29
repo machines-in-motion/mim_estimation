@@ -80,7 +80,7 @@ struct BaseEkfWithImuKinSettings
     Eigen::Vector3d meas_noise_cov =
         (Eigen::Vector3d() << 1e-5, 1e-5, 1e-8).finished();
 
-    std::string to_string()
+    virtual std::string to_string()
     {
         std::ostringstream oss;
         oss << "The state is expressed in the imu frame ("
@@ -195,10 +195,9 @@ public:
      *
      * @param root_velocities
      */
-    void get_measurement(
-        std::vector<Eigen::Vector3d,
-                    Eigen::aligned_allocator<Eigen::Vector3d> >&
-            root_velocities);
+    const std::vector<Eigen::Vector3d,
+                      Eigen::aligned_allocator<Eigen::Vector3d> >&
+    get_measurement();
 
     /*
      * Private methods.

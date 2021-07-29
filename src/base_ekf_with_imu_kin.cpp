@@ -213,11 +213,10 @@ void BaseEkfWithImuKin::get_filter_output(
     robot_velocity.tail(joint_velocity_.size()) = joint_velocity_;
 }
 
-void BaseEkfWithImuKin::get_measurement(
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >&
-        root_velocities)
+const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >&
+BaseEkfWithImuKin::get_measurement()
 {
-    root_velocities = kin_meas_root_velocity_;
+    return kin_meas_root_velocity_;
 }
 
 void BaseEkfWithImuKin::compute_end_effectors_forward_kinematics(
