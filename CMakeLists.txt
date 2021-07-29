@@ -24,13 +24,17 @@ find_package(mpi_cmake_modules REQUIRED)
 find_package(yaml_utils REQUIRED)
 
 # External dependencies
+find_package(eigenpy REQUIRED)
 find_package(pinocchio 2.0.0 REQUIRED)
-find_package(pybind11 REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-# Special case: Boost python
-include(cmake/boost_python.cmake)
-search_for_boost_python()
+# Optional dependencies
+find_package(dynamic-graph QUIET)
+find_package(dynamic-graph-python QUIET)
+set(BUILD_DG_ENTITIES OFF)
+if(dynamic-graph_FOUND AND dynamic-graph-python_FOUND)
+  set(BUILD_DG_ENTITIES ON)
+endif()
 
 #
 # Build main library and binaries
@@ -65,25 +69,68 @@ target_include_directories(
 list(APPEND all_targets ${PROJECT_NAME})
 
 #
+# Dynamic Graph Bindings.
+#
+if(${BUILD_DG_ENTITIES})
+  # Create the python module with the entities and the python bindings.
+  add_library(
+    entities MODULE
+    srcdg/dg_python_module.cpp #
+    srcdg/robot_state_estimator.cpp #
+    srcdg/robot_state_estimator.hpp #
+    srcdg/signal_utils.cpp #
+    srcdg/signal_utils.hpp #
+  )
+  # Add the include dependencies.
+  target_include_directories(
+    entities
+    PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+           $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}> ${Python_INCLUDE_DIR}
+           ${PYTHON_INCLUDE_DIR}) # Link the dependencies.
+  target_link_libraries(entities ${PROJECT_NAME})
+  target_link_libraries(entities dynamic-graph::dynamic-graph)
+  target_link_libraries(entities dynamic-graph-python::dynamic-graph-python)
+  # Install the python module.
+  get_python_install_dir(python_install_dir)
+  set(python_module_install_dir
+      ${python_install_dir}/${PROJECT_NAME}/dynamic_graph)
+  set_target_properties(entities PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}")
+  get_dynamic_graph_plugin_install_path(plugin_install_path)
+  set_target_properties(
+    entities
+    PROPERTIES
+      INSTALL_RPATH
+      "${CMAKE_INSTALL_RPATH}:${CMAKE_INSTALL_PREFIX}/${plugin_install_path}")
+  install(TARGETS entities DESTINATION ${python_module_install_dir})
+endif()
+
+#
 # Python Bindings
 #
-pybind11_add_module(
-  ${PROJECT_NAME}_cpp
-  MODULE #
-  srcpy/boost_python_compatibility.hpp
+add_library(
+  ${PROJECT_NAME}_cpp MODULE #
   srcpy/${PROJECT_NAME}.cpp #
   srcpy/base_ekf_with_imu_kin.cpp #
   srcpy/end_effector_force_estimator.cpp #
-  srcpy/robot_state_estimator.cpp
+  srcpy/robot_state_estimator.cpp #
 )
-# cmake-format: on
-target_link_libraries(${PROJECT_NAME}_cpp PRIVATE pybind11::module)
-target_link_libraries(${PROJECT_NAME}_cpp PRIVATE ${PROJECT_NAME})
-target_link_boost_python(${PROJECT_NAME}_cpp PRIVATE)
-
+# includes
+target_include_directories(${PROJECT_NAME}_cpp PRIVATE ${Python_INCLUDE_DIR})
+# dependencies
+target_link_libraries(${PROJECT_NAME}_cpp ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME}_cpp eigenpy::eigenpy)
+target_link_libraries(${PROJECT_NAME}_cpp ${Python_LIBRARY})
+target_link_boost_python(${PROJECT_NAME}_cpp)
 # install the bindings
-get_python_install_dir(PYTHON_INSTALL_DIR)
-install(TARGETS ${PROJECT_NAME}_cpp DESTINATION ${PYTHON_INSTALL_DIR})
+set_target_properties(${PROJECT_NAME}_cpp PROPERTIES PREFIX "")
+get_python_install_dir(python_install_dir)
+install(
+  TARGETS ${PROJECT_NAME}_cpp
+  LIBRARY DESTINATION ${python_install_dir}
+  ARCHIVE DESTINATION ${python_install_dir}
+  RUNTIME DESTINATION ${python_install_dir}
+  INCLUDES
+  DESTINATION include)
 
 #
 # Tests.

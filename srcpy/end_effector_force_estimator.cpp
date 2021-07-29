@@ -7,21 +7,22 @@
  * @brief Python bindings for the StepperHead class
  */
 
+// clang-format off
+#include "pinocchio/bindings/python/fwd.hpp"
+#include <eigenpy/eigenpy.hpp>
+#include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+
 #include "mim_estimation/end_effector_force_estimator.hpp"
+// clang-format on
 
-#include <pybind11/eigen.h>
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
-namespace py = pybind11;
+using namespace boost::python;
 
 namespace mim_estimation
 {
-void bind_end_effector_force_estimator(py::module& module)
+void bind_end_effector_force_estimator()
 {
-    py::class_<EndEffectorForceEstimator>(module, "EndEffectorForceEstimator")
-        .def(py::init<>())
+    class_<EndEffectorForceEstimator>("EndEffectorForceEstimator")
         .def("initialize", &EndEffectorForceEstimator::initialize)
         .def("run", &EndEffectorForceEstimator::run)
         .def("add_contact_frame",
@@ -33,7 +34,8 @@ void bind_end_effector_force_estimator(py::module& module)
                  (EndEffectorForceEstimator::*)(const std::vector<std::string>&
                                                     frame_names))>(
                  &EndEffectorForceEstimator::add_contact_frame))
-        .def("get_force", &EndEffectorForceEstimator::get_force)
+        .def("get_force", make_function(&EndEffectorForceEstimator::get_force,
+                          return_value_policy<copy_const_reference>()))
         .def("__repr__", &EndEffectorForceEstimator::to_string);
 }
 

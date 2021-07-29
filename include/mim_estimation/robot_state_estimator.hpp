@@ -10,12 +10,14 @@
 
 #pragma once
 
+#include <sstream>
+
 #include "mim_estimation/base_ekf_with_imu_kin.hpp"
 #include "mim_estimation/end_effector_force_estimator.hpp"
 
 namespace mim_estimation
 {
-struct RobotStateEstimatorSettings: public BaseEkfWithImuKinSettings
+struct RobotStateEstimatorSettings : public BaseEkfWithImuKinSettings
 {
     /* BaseEkfWithImuKin settings (inherited) */
 
@@ -23,6 +25,25 @@ struct RobotStateEstimatorSettings: public BaseEkfWithImuKinSettings
 
     /** @brief Path to th robot URDF file. */
     std::string urdf_path;
+
+    /* Contact detection. */
+
+    /** @brief Threshold on the rising force norm. */
+    double force_threshold_up = 10;
+
+    /** @brief Threshold on the decreasing force norm. */
+    double force_threshold_down = 5;
+
+    /* Public methods. */
+
+    /** @brief Convert the current object in human readable string. */
+    virtual std::string to_string()
+    {
+        std::ostringstream oss;
+        oss << "The urdf path is: " << urdf_path << std::endl;
+        oss << BaseEkfWithImuKinSettings::to_string();
+        return oss.str();
+    }
 };
 
 /**
@@ -39,13 +60,25 @@ struct RobotStateEstimatorSettings: public BaseEkfWithImuKinSettings
 class RobotStateEstimator
 {
 public:
+    typedef std::map<
+        std::string,
+        Eigen::Vector3d,
+        std::less<std::string>,
+        Eigen::aligned_allocator<std::pair<const std::string, Eigen::Vector3d>>>
+        ForceInWorldMap;
+
+public:
     /** @brief Construct a new Base State Estimator object. */
     RobotStateEstimator();
 
     /** @brief Destroy by default the Base State Estimator object. */
     ~RobotStateEstimator();
 
-    void initialize(RobotStateEstimatorSettings settings);
+    void initialize(const RobotStateEstimatorSettings& settings);
+
+    void set_initial_state(
+        Eigen::Ref<const Eigen::VectorXd> initial_robot_configuration,
+        Eigen::Ref<const Eigen::VectorXd> initial_robot_velocity);
 
     void run(Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
              Eigen::Ref<const Eigen::Vector3d> imu_gyroscope,
@@ -55,6 +88,16 @@ public:
 
     void get_state(Eigen::Ref<Eigen::VectorXd> robot_configuration,
                    Eigen::Ref<Eigen::VectorXd> robot_velocity);
+
+    const Eigen::VectorXd& get_robot_configuration() const;
+
+    const Eigen::VectorXd& get_robot_velocity() const;
+
+    const std::vector<bool>& get_detected_contact() const;
+
+    const Eigen::Vector3d& get_force(const std::string& frame_name);
+
+    const RobotStateEstimatorSettings& get_settings() const;
 
 private:
     /** @brief End-effector force estimator. Estimate the forces in the base
@@ -67,6 +110,21 @@ private:
 
     /** @brief Settings of this class. */
     RobotStateEstimatorSettings settings_;
+
+    /** @brief Contact detection from force. */
+    std::vector<bool> detected_contact_;
+
+    /** @brief Current robot configuration. */
+    Eigen::VectorXd current_robot_configuration_;
+
+    /** @brief Current robot velocity. */
+    Eigen::VectorXd current_robot_velocity_;
+
+    /** @brief Current base orientation in the estimated world frame. */
+    Eigen::Quaterniond rot_base_in_world_;
+
+    /** @brief Force in world frame. */
+    ForceInWorldMap force_in_world_map_;
 };
 
 }  // namespace mim_estimation

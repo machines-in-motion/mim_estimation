@@ -6,63 +6,50 @@
  *
  * @brief Python bindings for the StepperHead class
  */
-
-#include "boost_python_compatibility.hpp"
+// clang-format off
+#include "pinocchio/bindings/python/fwd.hpp"
+#include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include "mim_estimation/robot_state_estimator.hpp"
+// clang-format on
 
-namespace py = pybind11;
+using namespace boost::python;
 
 namespace mim_estimation
 {
-
-void bind_robot_state_estimator(py::module& module)
+void bind_robot_state_estimator()
 {
-    py::class_<RobotStateEstimatorSettings>(module, "BaseEkfWithImuKinSettings")
-        .def(py::init<>())
-        .def_readwrite("is_imu_frame", &BaseEkfWithImuKinSettings::is_imu_frame)
-        .def_readwrite("end_effector_frame_names",
-                       &BaseEkfWithImuKinSettings::end_effector_frame_names)
-        .def_property(
-            "pinocchio_model", &get_pinocchio_model, &set_pinocchio_model)
-        .def_property("imu_in_base", &get_imu_in_base, &set_imu_in_base)
-        .def_readwrite("dt", &BaseEkfWithImuKinSettings::dt)
-        .def_readwrite("noise_accelerometer",
-                       &BaseEkfWithImuKinSettings::noise_accelerometer)
-        .def_readwrite("noise_gyroscope",
-                       &BaseEkfWithImuKinSettings::noise_gyroscope)
-        .def_readwrite("noise_bias_accelerometer",
-                       &BaseEkfWithImuKinSettings::noise_bias_accelerometer)
-        .def_readwrite("noise_bias_gyroscope",
-                       &BaseEkfWithImuKinSettings::noise_bias_gyroscope)
-        .def_readwrite("meas_noise_cov",
-                       &BaseEkfWithImuKinSettings::meas_noise_cov)
-        .def("__repr__", &BaseEkfWithImuKinSettings::to_string);
+    class_<RobotStateEstimatorSettings, bases<BaseEkfWithImuKinSettings>>(
+        "RobotStateEstimatorSettings")
+        .def_readwrite("urdf_path", &RobotStateEstimatorSettings::urdf_path)
+        .def_readwrite("force_threshold_up",
+                       &RobotStateEstimatorSettings::force_threshold_up)
+        .def_readwrite("force_threshold_down",
+                       &RobotStateEstimatorSettings::force_threshold_down)
+        .def("__repr__", &RobotStateEstimatorSettings::to_string);
 
-    py::class_<BaseEkfWithImuKin>(module, "BaseEkfWithImuKin")
-        .def(py::init<>())
+    class_<RobotStateEstimator>("RobotStateEstimator")
         // Public methods.
         .def("initialize",
-             &BaseEkfWithImuKin::initialize,
-             "Get the EKF settings and initialize the filter from them.")
+             &RobotStateEstimator::initialize,
+             "Set the estimator settings.")
         .def("set_initial_state",
-             static_cast<void(
-                 (BaseEkfWithImuKin::*)(Eigen::Ref<const Eigen::Vector3d>,
-                                        const Eigen::Quaterniond&,
-                                        Eigen::Ref<const Eigen::Vector3d>,
-                                        Eigen::Ref<const Eigen::Vector3d>))>(
-                 &BaseEkfWithImuKin::set_initial_state),
-             "Set the initial state from the base position and velocity.")
-        .def("set_initial_state",
-             static_cast<void((
-                 BaseEkfWithImuKin::*)(Eigen::Ref<
-                                           const Eigen::Matrix<double, 7, 1> >,
-                                       Eigen::Ref<const Eigen::
-                                                      Matrix<double, 6, 1> >))>(
-                 &BaseEkfWithImuKin::set_initial_state),
-             "Set the initial state from the base position and velocity.")
-        .def("update_filter", &BaseEkfWithImuKin::update_filter, "")
-        .def("get_filter_output", &BaseEkfWithImuKin::get_filter_output, "")
-        .def("get_measurement", &get_measurement, "");
+             &RobotStateEstimator::set_initial_state,
+             "Set the initial state using generalized coordinates.")
+        .def("run",
+             &RobotStateEstimator::run,
+             "Execute the estimation from input data.")
+        .def("get_state",
+             &RobotStateEstimator::get_state,
+             "Get the robot state in the generalized coordinates.")
+        .def("get_detected_contact",
+             make_function(&RobotStateEstimator::get_detected_contact,
+                           return_value_policy<copy_const_reference>()),
+             "Get the contact detection per end-effector.")
+        .def("get_force",
+             make_function(&RobotStateEstimator::get_force,
+                           return_value_policy<copy_const_reference>()),
+             "Get the end-effector force from its name.");
 }
 
 }  // namespace mim_estimation

@@ -4,9 +4,6 @@ Copyright (c) 2020, New York University and Max Planck Gesellschaft.
 Author: Maximilien Naveau
 """
 
-import copy
-import pickle
-from pathlib import Path
 import argparse
 import numpy as np
 from mim_control.robot_impedance_controller import RobotImpedanceController
@@ -14,7 +11,7 @@ from mim_control.robot_centroidal_controller import RobotCentroidalController
 from bullet_utils.env import BulletEnvWithGround
 from robot_properties_solo.solo12wrapper import Solo12Robot, Solo12Config
 from robot_properties_bolt.bolt_wrapper import BoltRobot, BoltConfig
-from mim_estimation_cpp import BaseEkfWithImuKinSettings, BaseEkfWithImuKin
+from mim_estimation_cpp import RobotStateEstimator, RobotStateEstimatorSettings
 import matplotlib.pyplot as plt
 import pinocchio
 
@@ -135,6 +132,7 @@ class SimuController(object):
         self.robot.send_joint_command(tau)
 
         # collect sim data
+        self.out_joint_torque = tau.copy()
         self.out_q = q.copy()
         self.out_dq = dq.copy()
         self.out_imu_linacc = self.robot.get_base_imu_linacc()
@@ -153,49 +151,102 @@ class DataCollection(object):
     def __init__(self, max_nb_it):
         self.max_nb_it = max_nb_it
         self.data = {}
-        # data folder for sim data caching
-        self.path_dir = Path("/tmp") / "demo_ekf_squatting_motion_cpp"
-        self.path_dir.mkdir(parents=True, exist_ok=True)
-        self.cache_file_name = "cached_data.pkl"
-        self.cache_file_path = self._file_path(self.cache_file_name)
-        # nb figures
-        self.nb_figures = 0
 
-    def collect_data(self, data_name, it, data):
+    def collect_data(self, data_name, data):
         if not (data_name) in self.data:
             self.data[data_name] = np.array(data)
         else:
             self.data[data_name] = np.vstack([self.data[data_name], data])
 
-    def clear_data(self, data_name):
-        if not (data_name) in self.data:
-            return
-        self.data.pop(data_name)
 
-    def _file_path(self, file_name):
-        if not file_name.endswith(".pkl"):
-            file_name += ".pkl"
-        file_path = self.path_dir / file_name
-        return str(file_path)
+def demo(robot_name, nb_iteration):
+    # Create the controller.
+    ctrl = SimuController(robot_name)
+    # Initialize the data collection.
+    logger = DataCollection(nb_iteration)
+    # Create the Estimator instance.
+    estimator_settings = RobotStateEstimatorSettings()
+    estimator_settings.is_imu_frame = False
+    estimator_settings.pinocchio_model = ctrl.robot_config.pin_robot.model
+    estimator_settings.imu_in_base = pinocchio.SE3(
+        ctrl.robot.rot_base_to_imu.T, ctrl.robot.r_base_to_imu
+    )
+    estimator_settings.end_effector_frame_names = [
+        "FL_ANKLE",
+        "FR_ANKLE",
+        "HL_ANKLE",
+        "HR_ANKLE",
+    ]
+    estimator_settings.urdf_path = ctrl.robot_config.urdf_path
+    robot_weight_per_ee = ctrl.robot_config.mass * 9.81 / 4
+    estimator_settings.force_threshold_up = 0.8 * robot_weight_per_ee
+    estimator_settings.force_threshold_down = 0.2 * robot_weight_per_ee
 
-    def dump_data(self):
-        with open(self.cache_file_path, "wb") as f:
-            pickle.dump(self.data, f)
+    print("force_threshold_up = ", estimator_settings.force_threshold_up)
+    print("force_threshold_down = ", estimator_settings.force_threshold_down)
 
-    def load_data(self):
-        with open(self.cache_file_path, "rb") as f:
-            self.data = pickle.load(f)
+    # Create the estimator and initialize it.
+    estimator = RobotStateEstimator()
+    estimator.initialize(estimator_settings)
 
-    def has_cache(self):
-        found = Path(self.cache_file_path).exists()
-        if found:
-            print("Found data cache in: ", self.cache_file_path)
-        else:
-            print("Data cache not found.")
-        return found
+    for i in range(nb_iteration):
+        # -------------- Run controller ------------------#
+        ctrl.run_squatting_motion(i)
+
+        # -------------- Run the estimator -------------- #
+        # Set the initial values of est
+        if i == 0:
+            estimator.set_initial_state(
+                ctrl.out_q,
+                ctrl.out_dq,
+            )
+
+        # est computation:
+        estimator.run(
+            ctrl.out_imu_linacc,
+            ctrl.out_imu_angvel,
+            ctrl.out_joint_position,
+            ctrl.out_joint_velocity,
+            ctrl.out_joint_torque,
+        )
+
+        # Read the values of position, velocity and orientation from est
+        q_est = np.zeros(ctrl.robot_config.pin_robot.nq)
+        dq_est = np.zeros(ctrl.robot_config.pin_robot.nv)
+        estimator.get_state(q_est, dq_est)
+        detected_contact = estimator.get_detected_contact()
+        forces = [
+            estimator.get_force(ee)
+            for ee in estimator_settings.end_effector_frame_names
+        ]
+        forces_norm = [np.linalg.norm(f) for f in forces]
+
+        # Log the simu data
+        logger.collect_data("sim_imu_linacc", ctrl.out_imu_linacc.copy())
+        logger.collect_data("sim_imu_angvel", ctrl.out_imu_angvel.copy())
+        logger.collect_data(
+            "sim_joint_position", ctrl.out_joint_position.copy()
+        )
+        logger.collect_data(
+            "sim_joint_velocity", ctrl.out_joint_velocity.copy()
+        )
+        logger.collect_data("sim_base_pos", ctrl.out_base_pos.copy())
+        logger.collect_data("sim_base_vel", ctrl.out_base_vel.copy())
+        logger.collect_data("sim_base_rpy", ctrl.out_base_rpy.copy())
+        # log the estimator data.
+        base_attitude_est = pinocchio.Quaternion(q_est[3:7])
+        rpy_base_est = pinocchio.utils.matrixToRpy(base_attitude_est.matrix())
+        logger.collect_data("est_base_pos", q_est[:3])
+        logger.collect_data("est_base_vel", dq_est[:3])
+        logger.collect_data("est_base_rpy", rpy_base_est)
+        for i, (ee, f) in enumerate(
+            zip(estimator_settings.end_effector_frame_names, forces)
+        ):
+            logger.collect_data("est_" + ee + "_force", f)
+            logger.collect_data("est_" + ee + "_contact", detected_contact[i])
+            logger.collect_data("est_" + ee + "_force_norm", forces_norm[i])
 
     def plot(
-        self,
         data_list,
         legend_list,
         title,
@@ -203,7 +254,8 @@ class DataCollection(object):
         ylim=(None, None),
     ):
         plt.figure(title)
-        t = np.arange(self.max_nb_it)
+        max_nb_it = data_list[0].shape[0]
+        t = np.arange(max_nb_it, step=1)
         string = "XYZ"
         for i in range(3):
             plt.subplot(int("31" + str(i + 1)))
@@ -217,126 +269,74 @@ class DataCollection(object):
         plt.xlabel("time(ms)")
         plt.suptitle(title)
 
-    def plot_all(self):
-        # Plot the results
-        self.plot(
-            [self.data["sim_base_pos"], self.data["ekf_base_pos"]],
-            ["Sim data", "EKF data"],
-            "Base_Position",
-            # ylim=(-2, 2),
-        )
-        self.plot(
-            [self.data["sim_base_vel"], self.data["ekf_base_vel"]],
-            ["Sim data", "EKF data"],
-            "Base_Velocity",
-            # ylim=(-2, 2),
-        )
-        self.plot(
-            [self.data["sim_base_rpy"], self.data["ekf_base_rpy"]],
-            ["Sim data", "EKF data"],
-            "Base_Orientation(roll_pitch-yaw)",
-            # ylim=(-2*np.pi, 2*np.pi),
-        )
-        self.plot(
-            [
-                self.data["ekf_root_velocities[" + str(ee) + "]"]
-                for ee in range(4)
-            ],
-            ["ekf_root_velocities[" + str(ee) + "]" for ee in range(4)],
-            "Measured base velocities",
-        )
-        plt.show()
-
-
-def demo(robot_name, nb_iteration):
-    # Create the controller.
-    ctrl = SimuController(robot_name)
-    # Initialize the data collection.
-    logger = DataCollection(nb_iteration)
-
-    use_cache = True
-
-    # Look for some cache files.
-    if logger.has_cache() and use_cache:
-        # If there is a cache we load it and use it.
-        logger.load_data()
-
-    else:
-        # if not we run the simu
-        for i in range(nb_iteration):
-            ctrl.run_squatting_motion(i)
-            logger.collect_data("sim_q", i, ctrl.out_q.copy())
-            logger.collect_data("sim_dq", i, ctrl.out_dq.copy())
-            logger.collect_data(
-                "sim_imu_linacc", i, ctrl.out_imu_linacc.copy()
-            )
-            logger.collect_data(
-                "sim_imu_angvel", i, ctrl.out_imu_angvel.copy()
-            )
-            logger.collect_data(
-                "sim_joint_position", i, ctrl.out_joint_position.copy()
-            )
-            logger.collect_data(
-                "sim_joint_velocity", i, ctrl.out_joint_velocity.copy()
-            )
-            logger.collect_data("sim_base_pos", i, ctrl.out_base_pos.copy())
-            logger.collect_data("sim_base_vel", i, ctrl.out_base_vel.copy())
-            logger.collect_data("sim_base_rpy", i, ctrl.out_base_rpy.copy())
-            logger.dump_data()
-
-    # Create EKF instance and set the SE3 from IMU to Base
-    ekf_settings = BaseEkfWithImuKinSettings()
-    ekf_settings.is_imu_frame = False
-    ekf_settings.pinocchio_model = ctrl.robot_config.pin_robot.model
-    ekf_settings.imu_in_base = pinocchio.SE3(
-        ctrl.robot.rot_base_to_imu.T, ctrl.robot.r_base_to_imu
+    # Plot the results
+    plot(
+        [logger.data["sim_base_pos"], logger.data["est_base_pos"]],
+        ["Sim data", "est data"],
+        "Base_Position",
+        # ylim=(-2, 2),
     )
-    ekf_settings.end_effector_frame_names = [
-        "FL_ANKLE",
-        "FR_ANKLE",
-        "HL_ANKLE",
-        "HR_ANKLE",
-    ]
-    # Create the ekf and initialize it.
-    ekf = BaseEkfWithImuKin()
-    ekf.initialize(ekf_settings)
-
-    # Run the Ekf on the simulation data.
-    for i in range(nb_iteration):
-        # -------------- Run the EKF -------------- #
-        # Set the initial values of EKF
-        if i == 0:
-            ekf.set_initial_state(
-                logger.data["sim_q"][i, :7],
-                logger.data["sim_dq"][i, :6],
-            )
-
-        # EKF computation:
-        contacts_schedule = [True, True, True, True]
-        ekf.update_filter(
-            contacts_schedule,
-            logger.data["sim_imu_linacc"][i, :],
-            logger.data["sim_imu_angvel"][i, :],
-            logger.data["sim_joint_position"][i, :],
-            logger.data["sim_joint_velocity"][i, :],
+    plot(
+        [logger.data["sim_base_vel"], logger.data["est_base_vel"]],
+        ["Sim data", "est data"],
+        "Base_Velocity",
+        # ylim=(-2, 2),
+    )
+    plot(
+        [logger.data["sim_base_rpy"], logger.data["est_base_rpy"]],
+        ["Sim data", "est data"],
+        "Base_Orientation(roll_pitch-yaw)",
+        # ylim=(-2*np.pi, 2*np.pi),
+    )
+    for ee, f in zip(estimator_settings.end_effector_frame_names, forces):
+        title = "Force and contact (" + ee + ")"
+        plt.figure(title)
+        max_nb_it = logger.data["est_" + ee + "_force"].shape[0]
+        t = np.arange(max_nb_it, step=1)
+        plt.subplot(311)
+        plt.plot(
+            t,
+            logger.data["est_" + ee + "_force"][:, 0],
+            label="Fx",
+            linewidth=0.75,
         )
+        plt.plot(
+            t,
+            logger.data["est_" + ee + "_force"][:, 1],
+            label="Fy",
+            linewidth=0.75,
+        )
+        plt.plot(
+            t,
+            logger.data["est_" + ee + "_force"][:, 2],
+            label="Fz",
+            linewidth=0.75,
+        )
+        plt.legend(loc="upper right", shadow=True, fontsize="large")
+        plt.grid()
+        plt.subplot(312)
+        plt.plot(
+            t,
+            logger.data["est_" + ee + "_force_norm"][:, 0],
+            label="Force norm",
+            linewidth=0.75,
+        )
+        plt.grid()
+        plt.legend(loc="upper right", shadow=True, fontsize="large")
+        plt.subplot(313)
+        plt.plot(
+            t,
+            logger.data["est_" + ee + "_contact"][:, 0],
+            label="Contact",
+            linewidth=0.75,
+        )
+        plt.grid()
+        plt.legend(loc="upper right", shadow=True, fontsize="large")
 
-        # Read the values of position, velocity and orientation from EKF
-        q_ekf = np.zeros(ctrl.robot_config.pin_robot.nq)
-        dq_ekf = np.zeros(ctrl.robot_config.pin_robot.nv)
-        ekf.get_filter_output(q_ekf, dq_ekf)
-        root_velocities = ekf.get_measurement()
+        plt.xlabel("time(ms)")
+        plt.suptitle(title)
 
-        # Log the ekf data
-        base_attitude_ekf = pinocchio.Quaternion(q_ekf[3:7])
-        rpy_base_ekf = pinocchio.utils.matrixToRpy(base_attitude_ekf.matrix())
-        logger.collect_data("ekf_base_pos", i, q_ekf[:3])
-        logger.collect_data("ekf_base_vel", i, dq_ekf[:3])
-        logger.collect_data("ekf_base_rpy", i, rpy_base_ekf)
-        for ee, vel in enumerate(root_velocities):
-            logger.collect_data("ekf_root_velocities[" + str(ee) + "]", i, vel)
-
-    logger.plot_all()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -351,5 +351,5 @@ if __name__ == "__main__":
         robot_name = "solo"
 
     # Run the demo
-    simulation_time = 5000  # ms
+    simulation_time = 10000  # ms
     demo(robot_name, simulation_time)
