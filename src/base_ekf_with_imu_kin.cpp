@@ -240,6 +240,8 @@ void BaseEkfWithImuKin::compute_end_effectors_forward_kinematics(
     // Perform the Forward kinematics.
     pinocchio::forwardKinematics(
         pinocchio_model, pinocchio_data_, q_kin_, dq_kin_);
+    pinocchio::framesForwardKinematics(
+        pinocchio_model, pinocchio_data_, q_kin_);
 
     std::size_t nb_ee = settings_.end_effector_frame_names.size();
     for (std::size_t i = 0; i < nb_ee; ++i)

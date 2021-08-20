@@ -51,6 +51,23 @@ void RobotStateEstimator::set_initial_state(
 }
 
 void RobotStateEstimator::run(
+    const std::vector<bool>& contact_schedule,
+    Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
+    Eigen::Ref<const Eigen::Vector3d> imu_gyroscope,
+    Eigen::Ref<const Eigen::VectorXd> joint_position,
+    Eigen::Ref<const Eigen::VectorXd> joint_velocity)
+{
+    base_ekf_with_imu_kin_.update_filter(contact_schedule,
+                                         imu_accelerometer,
+                                         imu_gyroscope,
+                                         joint_position,
+                                         joint_velocity);
+
+    base_ekf_with_imu_kin_.get_filter_output(current_robot_configuration_,
+                                             current_robot_velocity_);
+}
+
+void RobotStateEstimator::run(
     Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
     Eigen::Ref<const Eigen::Vector3d> imu_gyroscope,
     Eigen::Ref<const Eigen::VectorXd> joint_position,
@@ -90,14 +107,11 @@ void RobotStateEstimator::run(
         }
     }
 
-    base_ekf_with_imu_kin_.update_filter(detected_contact_,
-                                         imu_accelerometer,
-                                         imu_gyroscope,
-                                         joint_position,
-                                         joint_velocity);
-
-    base_ekf_with_imu_kin_.get_filter_output(current_robot_configuration_,
-                                             current_robot_velocity_);
+    run(detected_contact_,
+        imu_accelerometer,
+        imu_gyroscope,
+        joint_position,
+        joint_velocity);
 }
 
 const Eigen::Vector3d& RobotStateEstimator::get_force(
@@ -117,14 +131,12 @@ void RobotStateEstimator::get_state(
 const Eigen::VectorXd& RobotStateEstimator::get_robot_configuration() const
 {
     return current_robot_configuration_;
-
 }
 
 const Eigen::VectorXd& RobotStateEstimator::get_robot_velocity() const
 {
     return current_robot_velocity_;
 }
-
 
 const std::vector<bool>& RobotStateEstimator::get_detected_contact() const
 {

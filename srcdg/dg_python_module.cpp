@@ -19,6 +19,9 @@ BOOST_PYTHON_MODULE(entities)
     boost::python::import("dynamic_graph");
     boost::python::object mim_estimation_cpp = bp::import("mim_estimation_cpp");
 
+    bp::scope().attr("RobotStateEstimatorSettings") =
+        mim_estimation_cpp.attr("RobotStateEstimatorSettings");
+
     using mim_estimation::dynamic_graph::RobotStateEstimator;
     dynamicgraph::python::exposeEntity<RobotStateEstimator>()
         .def(

@@ -17,7 +17,7 @@ using namespace boost::python;
 
 namespace mim_estimation
 {
-void bind_robot_state_estimator()
+void bind_robot_state_estimator_settings()
 {
     class_<RobotStateEstimatorSettings, bases<BaseEkfWithImuKinSettings>>(
         "RobotStateEstimatorSettings")
@@ -27,6 +27,11 @@ void bind_robot_state_estimator()
         .def_readwrite("force_threshold_down",
                        &RobotStateEstimatorSettings::force_threshold_down)
         .def("__repr__", &RobotStateEstimatorSettings::to_string);
+}
+
+void bind_robot_state_estimator()
+{
+    bind_robot_state_estimator_settings();
 
     class_<RobotStateEstimator>("RobotStateEstimator")
         // Public methods.
@@ -37,7 +42,22 @@ void bind_robot_state_estimator()
              &RobotStateEstimator::set_initial_state,
              "Set the initial state using generalized coordinates.")
         .def("run",
-             &RobotStateEstimator::run,
+             static_cast<void(
+                 (RobotStateEstimator::*)(const std::vector<bool>&,
+                                          Eigen::Ref<const Eigen::Vector3d>,
+                                          Eigen::Ref<const Eigen::Vector3d>,
+                                          Eigen::Ref<const Eigen::VectorXd>,
+                                          Eigen::Ref<const Eigen::VectorXd>))>(
+                 &RobotStateEstimator::run),
+             "Execute the estimation (including contact) from input data.")
+        .def("run",
+             static_cast<void(
+                 (RobotStateEstimator::*)(Eigen::Ref<const Eigen::Vector3d>,
+                                          Eigen::Ref<const Eigen::Vector3d>,
+                                          Eigen::Ref<const Eigen::VectorXd>,
+                                          Eigen::Ref<const Eigen::VectorXd>,
+                                          Eigen::Ref<const Eigen::VectorXd>))>(
+                 &RobotStateEstimator::run),
              "Execute the estimation from input data.")
         .def("get_state",
              &RobotStateEstimator::get_state,

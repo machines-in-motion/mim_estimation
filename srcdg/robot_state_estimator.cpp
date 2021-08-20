@@ -112,7 +112,7 @@ void RobotStateEstimator::initialize(
 
         // Register signal and save the pointer.
         signalRegistration(*signal);
-        force_sout_.push_back(std::move(signal));
+        force_sout_.emplace_back(std::move(signal));
     }
 }
 
