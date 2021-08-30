@@ -152,6 +152,8 @@ void BaseEkfWithImuKin::update_filter(
     // internal copy of the joint readings.
     joint_position_ = joint_position;
     joint_velocity_ = joint_velocity;
+    imu_gyroscope_ = imu_gyroscope;
+    imu_accelerometer_ = imu_accelerometer;
 
     // Compute the EKF output.
     integrate_process_model(imu_accelerometer, imu_gyroscope);
