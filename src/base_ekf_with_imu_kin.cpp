@@ -177,14 +177,14 @@ void BaseEkfWithImuKin::get_filter_output(
         pinocchio::SE3 pos_imu_in_world(
             posterior_state_.attitude.toRotationMatrix(),
             posterior_state_.position);
-        pinocchio::Motion vel_imu_in_world(
+        pinocchio::Motion vel_imu_in_imu(
             posterior_state_.linear_velocity,
             imu_gyroscope_ - posterior_state_.bias_gyroscope);
 
         pinocchio::SE3 pos_base_in_world =
             pos_imu_in_world.act(settings_.imu_in_base.inverse());
-        pinocchio::Motion vel_base_in_world =
-            settings_.imu_in_base.actInv(vel_imu_in_world);
+        pinocchio::Motion vel_base_in_base =
+            settings_.imu_in_base.act(vel_imu_in_imu);
 
         robot_configuration.head<3>() = pos_base_in_world.translation();
         Eigen::Quaterniond q;
@@ -196,7 +196,7 @@ void BaseEkfWithImuKin::get_filter_output(
         robot_configuration(5) = q.z();
         robot_configuration(6) = q.w();
         //
-        robot_velocity.head<6>() = vel_base_in_world.toVector();
+        robot_velocity.head<6>() = vel_base_in_base.toVector();
     }
     // mu post is expressed in the base frame.
     else
@@ -274,6 +274,8 @@ void BaseEkfWithImuKin::integrate_process_model(
 
     if (settings_.is_imu_frame)
     {
+        root_angular_velocity_ = imu_gyroscope - posterior_state_.bias_gyroscope;
+        root_linear_acceleration_ = imu_accelerometer - posterior_state_.bias_accelerometer;
     }
     else
     {
@@ -297,7 +299,7 @@ void BaseEkfWithImuKin::integrate_process_model(
     }
 
     predicted_state_.position =
-        posterior_state_.position + posterior_state_.linear_velocity * dt;
+        posterior_state_.position + attitude_post_ * posterior_state_.linear_velocity * dt;
     predicted_state_.linear_velocity =
         posterior_state_.linear_velocity +
         (-root_angular_velocity_.cross(posterior_state_.linear_velocity) +
@@ -409,22 +411,33 @@ void BaseEkfWithImuKin::measurement_model(
         {
             if (settings_.is_imu_frame)
             {
+                Eigen::Vector3d base_angular_velocity =
+                    settings_.imu_in_base.rotation() * root_angular_velocity_;
+                // imu frame velocity
+                pinocchio::Motion vel_base_in_base(-kin_ee_velocity_[i] -
+                    base_angular_velocity.cross(kin_ee_position_[i]),
+                    base_angular_velocity);
+
+                pinocchio::Motion vel_imu_in_imu =
+                    settings_.imu_in_base.actInv(vel_base_in_base);
+
+                kin_meas_root_velocity_[i] = vel_imu_in_imu.linear();
             }
             else
             {
-                // compute measurement jacobian
-                meas_jac_.block<3, 3>(3 * i, 3) = Eigen::Matrix3d::Identity();
-                meas_jac_.block<3, 3>(3 * i, 12) =
-                    pinocchio::skew(kin_ee_position_[i]);
-
-                // compute measurement error
+                // base frame velocity
                 kin_meas_root_velocity_[i] =
                     -kin_ee_velocity_[i] -
                     root_angular_velocity_.cross(kin_ee_position_[i]);
-                meas_error_.segment<3>(i * 3) =
-                    kin_meas_root_velocity_[i] -
-                    predicted_state_.linear_velocity;
             }
+            // compute measurement jacobian
+            meas_jac_.block<3, 3>(3 * i, 3) = Eigen::Matrix3d::Identity();
+            meas_jac_.block<3, 3>(3 * i, 12) =
+                pinocchio::skew(kin_ee_position_[i]);
+            // compute measurement error
+            meas_error_.segment<3>(i * 3) =
+                kin_meas_root_velocity_[i] -
+                predicted_state_.linear_velocity;
         }
         // Otherwise we set the error to 0.
         else
