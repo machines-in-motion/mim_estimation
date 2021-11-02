@@ -62,11 +62,11 @@ struct BaseEkfWithImuKinSettings
 
     /** @brief Accelerometer noise covariance. */
     Eigen::Vector3d noise_accelerometer =
-        0.00078 * 0.00078 * (Eigen::Vector3d() << dt, dt, dt).finished();
+        0.0001962 * 0.0001962 * (Eigen::Vector3d() << dt, dt, dt).finished();
 
     /** @brief Gyroscope noise covariance. */
     Eigen::Vector3d noise_gyroscope =
-        0.000523 * (Eigen::Vector3d() << dt, dt, dt).finished();
+        0.0000873 * 0.0000873 * (Eigen::Vector3d() << dt, dt, dt).finished();
 
     /** @brief Accelerometer bias noise covariance. */
     Eigen::Vector3d noise_bias_accelerometer =
@@ -74,7 +74,7 @@ struct BaseEkfWithImuKinSettings
 
     /** @brief Gyroscope bias noise covariance. */
     Eigen::Vector3d noise_bias_gyroscope =
-        0.000618 * 0.000618 * (Eigen::Vector3d() << 1.0, 1.0, 1.0).finished();
+        0.000309 * 0.000309 * (Eigen::Vector3d() << 1.0, 1.0, 1.0).finished();
 
     /** @brief Continuous measurement noise covariance. */
     Eigen::Vector3d meas_noise_cov =
