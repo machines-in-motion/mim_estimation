@@ -15,6 +15,10 @@ project(mim_estimation)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+
+set(PYTHON_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS} /usr/local/lib/python3.9/site-packages/numpy/core/include)
+
+
 #
 # Dependencies
 #
@@ -22,6 +26,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Local depends always first to find the proper python version.
 find_package(mpi_cmake_modules REQUIRED)
 find_package(yaml_utils REQUIRED)
+# all of python stuff 
+# find_package(Python REQUIRED)
 
 # External dependencies
 find_package(pinocchio 2.0.0 REQUIRED)
@@ -80,6 +86,31 @@ target_link_boost_python(${PROJECT_NAME}_cpp PRIVATE)
 
 # install the bindings
 get_python_install_dir(PYTHON_INSTALL_DIR)
+IF(APPLE)
+  # The apple framework headers don't include the numpy headers for some reason.
+  # I hard coded the path for python3.9, must be automated somehow 
+  GET_FILENAME_COMPONENT(REAL_PYTHON_INCLUDE ${PYTHON_INCLUDE_DIRS} REALPATH)
+  IF( ${REAL_PYTHON_INCLUDE} MATCHES Python.framework)
+    message("Trying to find extra headers for numpy.")
+    set(NUMPY_INCLUDE_HINTS
+      ${REAL_PYTHON_INCLUDE}/../../Extras/lib/python/numpy/core/include/numpy
+      ${REAL_PYTHON_INCLUDE}/numpy
+      /usr/local/lib/python3.9/site-packages/numpy/core/include/numpy
+    )
+    message("Looking in ${NUMPY_INCLUDE_HINTS}")
+    FIND_PATH(NUMPY_INCLUDE_DIR arrayobject.h ${NUMPY_INCLUDE_HINTS})
+    IF(${NUMPY_INCLUDE_DIR} MATCHES NOTFOUND)
+      message("Unable to find numpy include directories: ${NUMPY_INCLUDE_DIR}")
+    ELSE()
+      message("Found headers at ${NUMPY_INCLUDE_DIR}")
+      INCLUDE_DIRECTORIES(${NUMPY_INCLUDE_DIR})
+      INCLUDE_DIRECTORIES(${NUMPY_INCLUDE_DIR}/..)
+    ENDIF()
+  ENDIF()
+# ELSE(APPLE)
+#   message(STATUS "No NumPy includes found.")
+ENDIF(APPLE)
+
 install(TARGETS ${PROJECT_NAME}_cpp DESTINATION ${PYTHON_INSTALL_DIR})
 
 #
