@@ -15,10 +15,6 @@ project(mim_estimation)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-
-set(PYTHON_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS} /usr/local/lib/python3.9/site-packages/numpy/core/include)
-
-
 #
 # Dependencies
 #
@@ -26,8 +22,6 @@ set(PYTHON_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS} /usr/local/lib/python3.9/site-pac
 # Local depends always first to find the proper python version.
 find_package(mpi_cmake_modules REQUIRED)
 find_package(yaml_utils REQUIRED)
-# all of python stuff 
-# find_package(Python REQUIRED)
 
 # External dependencies
 find_package(pinocchio 2.0.0 REQUIRED)
