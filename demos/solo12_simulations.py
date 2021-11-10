@@ -61,7 +61,11 @@ class SimuController(object):
         self.xd_des = self.robot.nb_ee * [0.0, 0.0, 0.0]
 
         # config_file = "./solo_impedance.yaml"
-        config_file = self.robot_config.paths["imp_ctrl_yaml"]
+        try:
+            config_file = self.robot_config.paths["imp_ctrl_yaml"]
+        except:
+            config_file = self.robot_config.resources.imp_ctrl_yaml_path
+
         self.robot_cent_ctrl = RobotCentroidalController(
             self.robot_config,
             mu=self.mu,
