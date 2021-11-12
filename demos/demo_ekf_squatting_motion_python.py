@@ -93,7 +93,10 @@ def demo(robot_name, sim_time):
     xd_des = robot.nb_ee * [0.0, 0.0, 0.0]
 
     # config_file = "./solo_impedance.yaml"
-    config_file = robot_config.paths["imp_ctrl_yaml"]
+    try:
+        config_file = robot_config.paths["imp_ctrl_yaml"]
+    except:    
+        config_file = robot_config.resources.imp_ctrl_yaml_path
     robot_cent_ctrl = RobotCentroidalController(
         robot_config,
         mu=mu,
