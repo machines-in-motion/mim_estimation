@@ -474,16 +474,14 @@ class EKF:
         ee_positions, ee_velocities = self.compute_end_effectors_FK_quantities(
             joint_positions, joint_velocities
         )
-        # compute measurement jacobian
-        Hk[0:3, 3:6] = Hk[3:6, 3:6] = Hk[6:9, 3:6] = Hk[9:12, 3:6] = np.eye(3)
-        Hk[0:3, 12:15] = pin.skew(ee_positions["FL"])
-        Hk[3:6, 12:15] = pin.skew(ee_positions["FR"])
-        Hk[6:9, 12:15] = pin.skew(ee_positions["HL"])
-        Hk[9:12, 12:15] = pin.skew(ee_positions["HR"])
         i = 0
         for key, value in contacts_schedule.items():
             # check if foot is in contact based on contact schedule
             if value:
+                # compute measurement jacobian
+                Hk[i:i+3, 3:6] = np.eye(3)
+                Hk[i:i+3, 12:15] = pin.skew(ee_positions[key])
+                # get the prior frame velocity
                 predicted_frame_velocity[i : i + 3] = self.__mu_pre[
                     "ekf_frame_velocity"
                 ]
