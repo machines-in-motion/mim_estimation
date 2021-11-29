@@ -110,12 +110,12 @@ def demo(robot_name, sim_time):
     robot_leg_ctrl = RobotImpedanceController(robot, config_file)
 
     # initialize vectors for data collecting
-    frame_pos = np.zeros((T, 3), float)
-    frame_vel = np.zeros((T, 3), float)
-    frame_pos_ekf = np.zeros((T, 3), float)
-    frame_vel_ekf = np.zeros((T, 3), float)
-    frame_rpy = np.zeros((T, 3), float)
-    frame_rpy_ekf = np.zeros((T, 3), float)
+    base_pos = np.zeros((T, 3), float)
+    base_vel = np.zeros((T, 3), float)
+    base_rpy = np.zeros((T, 3), float)
+    base_pos_ekf = np.zeros((T, 3), float)
+    base_vel_ekf = np.zeros((T, 3), float)
+    base_rpy_ekf = np.zeros((T, 3), float)
 
     # Create EKF instance, and set the EKF_frame
     solo_ekf = EKF(conf)
@@ -172,33 +172,25 @@ def demo(robot_name, sim_time):
         contacts_schedule = {"FL": True, "FR": True, "HL": True, "HR": True}
         solo_ekf.update_step(contacts_schedule, q[7:], dq[6:])
 
-        # Read the values of position, velocity and orientation from the robot
-        if solo_ekf.get_ekf_frame():
-            frame_pos[i, :] = imu_frame_pos
-            frame_vel[i, :] = imu_frame_vel
-            frame_rot = (
-                pin.Quaternion(q[3:7]).matrix() @ robot.rot_base_to_imu.T
-            )
-            frame_rpy[i, :] = pin.utils.matrixToRpy(frame_rot)
-        else:
-            frame_pos[i, :] = q[:3]
-            frame_vel[i, :] = dq[:3]
-            q_base = pin.Quaternion(q[3:7])
-            frame_rpy[i, :] = pin.utils.matrixToRpy(q_base.matrix())
+        # Read the values of position, velocity and orientation of the base from robot
+        base_pos[i, :] = q[:3]
+        base_vel[i, :] = dq[:3]
+        q_base = pin.Quaternion(q[3:7])
+        base_rpy[i, :] = pin.utils.matrixToRpy(q_base.matrix())
 
-        # Read the values of position, velocity and orientation from EKF
-        base_state_post = solo_ekf.get_mu_post()
-        frame_pos_ekf[i, :] = base_state_post.get("ekf_frame_position")
-        frame_vel_ekf[i, :] = base_state_post.get("ekf_frame_velocity")
-        q_ekf = base_state_post.get("ekf_frame_orientation")
-        frame_rpy_ekf[i, :] = pin.utils.matrixToRpy(q_ekf.matrix())
+        # Read the values of position, velocity and orientation of the base from EKF
+        base_state = solo_ekf.get_ekf_output()
+        base_pos_ekf[i, :] = base_state.get("base_position")
+        base_vel_ekf[i, :] = base_state.get("base_velocity")
+        q_ekf = base_state.get("base_orientation")
+        base_rpy_ekf[i, :] = pin.utils.matrixToRpy(q_ekf.matrix())
     return (
-        frame_pos,
-        frame_vel,
-        frame_rpy,
-        frame_pos_ekf,
-        frame_vel_ekf,
-        frame_rpy_ekf,
+        base_pos,
+        base_vel,
+        base_rpy,
+        base_pos_ekf,
+        base_vel_ekf,
+        base_rpy_ekf,
     )
 
 
@@ -235,28 +227,28 @@ if __name__ == "__main__":
     # Run the demo
     simulation_time = 20000  # ms
     (
-        frame_pos,
-        frame_vel,
-        frame_rpy,
-        frame_pos_ekf,
-        frame_vel_ekf,
-        frame_rpy_ekf,
+        base_pos,
+        base_vel,
+        base_rpy,
+        base_pos_ekf,
+        base_vel_ekf,
+        base_rpy_ekf,
     ) = demo("solo", simulation_time)
 
     # Plot the results
     plt.figure("Position")
-    plot(frame_pos, frame_pos_ekf, "Squatting", "EKF", "EKF_Frame_Position")
+    plot(base_pos, base_pos_ekf, "Sim_data", "EKF_data", "Base_Position")
 
     plt.figure("Velocity")
-    plot(frame_vel, frame_vel_ekf, "Squatting", "EKF", "EKF_Frame_Velocity")
+    plot(base_vel, base_vel_ekf, "Sim_data", "EKF_data", "Base_Velocity")
 
     plt.figure("Orientation")
     plot(
-        frame_rpy,
-        frame_rpy_ekf,
-        "Squatting",
-        "EKF",
-        "EKF_Frame_Orientation(roll-pitch-yaw)",
+        base_rpy,
+        base_rpy_ekf,
+        "Sim_data",
+        "EKF_data",
+        "Base_Orientation(roll-pitch-yaw)",
     )
 
     plt.show()

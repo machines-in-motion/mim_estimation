@@ -22,9 +22,9 @@ def box_minus(R_plus, R):
 
 
 class EKF:
-    """EKF class for estimation of the position, velocity, orientation of the EKF_frame on the robot, and IMU bias_linear_acceleration and bias_angular_rate.
-    EKF_frame can be defined in the Base or IMU frame. Position and orientation are expressed in the world, velocity is expressed in the EKF_frame,
-    and bias terms are expressed in the IMU frame.
+    """EKF class for estimation of the position, velocity, orientation of the base frame on the robot, and IMU bias_linear_acceleration and bias_angular_rate.
+    Position and orientation are expressed in the world, velocity is expressed in the base_frame, and bias terms are expressed in the IMU frame. EKF_frame can
+    be defined in the Base or IMU frame.
 
     Attributes:
         robot : obj:'pinocchio.RobotWrapper'
@@ -42,6 +42,9 @@ class EKF:
         end_effectors_frame_names : dict
         ekf_in_imu_frame : bool
             False, EKF default frame is in the Base frame. True, EKF_frame is in the IMU frame.
+        base_state : dict
+            Base states estimated by EKF.
+            (x = {p:(np.array(3,)), v:(np.array(3,)), q:(pinocchio.Quaternion)).
         mu_pre : dict
             A priori estimate of the mean of the state vector,
             (x = {p:(np.array(3,)), v:(np.array(3,)), q:(pinocchio.Quaternion), b_a:(np.array(3,)), b_omega:(np.array(3,))}).
@@ -85,6 +88,13 @@ class EKF:
         self.__base_frame_name = conf.base_link_name
         self.__end_effectors_frame_names = conf.end_effectors_frame_names
         self.__ekf_in_imu_frame = False
+        self.__base_state = dict.fromkeys(
+            [
+                "base_position",
+                "base_velocity",
+                "base_orientation",
+            ]
+        )
         self.__mu_pre = dict.fromkeys(
             [
                 "ekf_frame_position",
@@ -121,24 +131,24 @@ class EKF:
     # private methods
     def __init_filter(self):
         """Sets the initial values for the 'a posteriori estimate'."""
-        M = self.__compute_base_pose_se3(self.__init_robot_config)
-        rot_base_to_world = M.rotation
+        base_se3 = self.__compute_base_pose_se3(self.__init_robot_config)
         if self.__ekf_in_imu_frame:
-            rot_imu_to_base = self.__SE3_imu_to_base.rotation
-            q = Quaternion(rot_base_to_world @ rot_imu_to_base)
+            base_motion = pin.Motion(np.zeros(3, dtype=float), np.zeros(3, dtype=float))
+            imu_se3 = base_se3.act(self.__SE3_imu_to_base)
+            imu_motion = self.__SE3_imu_to_base.actInv(base_motion)
+            q = Quaternion(imu_se3.rotation)
             q.normalize()
             self.__mu_post[
                 "ekf_frame_position"
-            ] = M.translation + rot_base_to_world.dot(
-                self.__SE3_imu_to_base.translation
-            )
+            ] = imu_se3.translation
             self.__mu_post["ekf_frame_orientation"] = q
+            self.__mu_post["ekf_frame_velocity"] = imu_motion.linear
         else:
-            q = Quaternion(rot_base_to_world)
+            q = Quaternion(base_se3.rotation)
             q.normalize()
-            self.__mu_post["ekf_frame_position"] = M.translation
+            self.__mu_post["ekf_frame_position"] = base_se3.translation
             self.__mu_post["ekf_frame_orientation"] = q
-        self.__mu_post["ekf_frame_velocity"] = np.zeros(3, dtype=float)
+            self.__mu_post["ekf_frame_velocity"] = np.zeros(3, dtype=float)
         self.__mu_post["imu_bias_acceleration"] = np.zeros(3, dtype=float)
         self.__mu_post["imu_bias_orientation"] = np.zeros(3, dtype=float)
 
@@ -242,7 +252,8 @@ class EKF:
             bool_value (bool): False in Base frame, True in IMU frame.
         """
         self.__ekf_in_imu_frame = bool_value
-        self.__init_filter()
+        if bool_value:
+            self.__init_filter()
 
     def set_SE3_imu_to_base(self, rotation, translation):
         """Sets the SE3 transformation from IMU to Base, and updates SE3 from Base to IMU.
@@ -536,15 +547,51 @@ class EKF:
         self.__mu_post["ekf_frame_velocity"] = (
             self.__mu_pre["ekf_frame_velocity"] + delta_x[3:6]
         )
-        self.__mu_post["ekf_frame_orientation"] = Quaternion(
-            box_plus(R_pre, delta_x[6:9])
-        )
+        q_post = Quaternion(box_plus(R_pre, delta_x[6:9]))
+        q_post.normalize()
+        self.__mu_post["ekf_frame_orientation"] = q_post
         self.__mu_post["imu_bias_acceleration"] = (
             self.__mu_pre["imu_bias_acceleration"] + delta_x[9:12]
         )
         self.__mu_post["imu_bias_orientation"] = (
             self.__mu_pre["imu_bias_orientation"] + delta_x[12:15]
         )
+
+    def get_ekf_output(self):
+        """Returns the base states estimated by the EKF.
+
+        Returns:
+            dict
+        """
+        # mu post is expressed in the imu frame
+        if self.__ekf_in_imu_frame:
+            imu_se3 = pin.SE3(
+                self.__mu_post["ekf_frame_orientation"].matrix(), 
+                self.__mu_post["ekf_frame_position"]
+            )
+            imu_motion = pin.Motion(
+                self.__mu_post["ekf_frame_velocity"],
+                self.__omega_hat
+            )
+            base_se3 = imu_se3.act(self.__SE3_base_to_imu)
+            base_motion = self.__SE3_imu_to_base.act(imu_motion)
+            q = Quaternion(base_se3.rotation)
+            q.normalize()
+            self.__base_state["base_position"] = base_se3.translation
+            self.__base_state["base_velocity"] = base_motion.linear
+            self.__base_state["base_orientation"] = q
+        # mu post is expressed in the base frame.
+        else:
+            self.__base_state["base_position"] = (
+                self.__mu_post["ekf_frame_position"]
+            )
+            self.__base_state["base_velocity"] = (
+                self.__mu_post["ekf_frame_velocity"]
+            )
+            self.__base_state["base_orientation"] = (
+                self.__mu_post["ekf_frame_orientation"]
+            )
+        return self.__base_state
 
 
 if __name__ == "__main__":
