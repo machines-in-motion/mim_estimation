@@ -94,7 +94,7 @@ def demo(robot_name, sim_time):
     # config_file = "./solo_impedance.yaml"
     try:
         config_file = robot_config.paths["imp_ctrl_yaml"]
-    except:    
+    except:
         config_file = robot_config.resources.imp_ctrl_yaml_path
     robot_cent_ctrl = RobotCentroidalController(
         robot_config,
@@ -119,7 +119,7 @@ def demo(robot_name, sim_time):
     # Create EKF instance, and set the EKF_frame
     solo_ekf = EKF(robot_config)
     solo_ekf.set_ekf_in_imu_frame(False)
-    solo_ekf.set_R(np.array([1e-4, 1e-4, 1e-4]))
+    solo_ekf.set_meas_noise_cov(np.array([1e-4, 1e-4, 1e-4]))
 
     # Run the simulator for the trajectory
     for i in range(T):
@@ -146,7 +146,7 @@ def demo(robot_name, sim_time):
         # Set the initial values of EKF
         imu_frame_pos, imu_frame_vel = robot.get_imu_frame_position_velocity()
         if i == 0:
-            if solo_ekf.get_ekf_frame():
+            if solo_ekf.get_is_in_imu_frame():
                 solo_ekf.set_mu_post("ekf_frame_position", imu_frame_pos)
                 solo_ekf.set_mu_post("ekf_frame_velocity", imu_frame_vel)
                 ekf_orien = (
@@ -165,7 +165,11 @@ def demo(robot_name, sim_time):
         # EKF update with all feet in contact
         contacts_schedule = np.array([1, 1, 1, 1])
         solo_ekf.update_filter(
-            robot.get_base_imu_linacc(), robot.get_base_imu_angvel(), contacts_schedule, q[7:], dq[6:]
+            robot.get_base_imu_linacc(),
+            robot.get_base_imu_angvel(),
+            contacts_schedule,
+            q[7:],
+            dq[6:],
         )
 
         # Read the values of position, velocity and orientation of the base from robot
