@@ -4,13 +4,12 @@ Copyright (c) 2021, New York University and Max Planck Gesellschaft.
 Author: Ahmad Gazar
 """
 
-import example_robot_data as robex
+from robot_properties_solo.solo12wrapper import Solo12Config
 from pinocchio import Quaternion
 from numpy.linalg import inv
 from numpy import random
 import pinocchio as pin
 import numpy as np
-from mim_estimation import conf
 
 # plus and minus operators on SO3
 def box_plus(R, theta):
@@ -22,12 +21,11 @@ def box_minus(R_plus, R):
 
 
 class EKF:
-    """EKF class for estimation of the position, velocity, orientation of the EKF_frame on the robot, and IMU bias_linear_acceleration and bias_angular_rate.
-    EKF_frame can be defined in the Base or IMU frame. Position and orientation are expressed in the world, velocity is expressed in the EKF_frame,
-    and bias terms are expressed in the IMU frame.
+    """EKF class for estimation of the position, velocity, orientation of the base frame on the robot, and IMU bias_linear_acceleration and bias_angular_rate.
+    Position and orientation are expressed in the world, velocity is expressed in the base_frame, and bias terms are expressed in the IMU frame. EKF_frame 
+    can be defined in the Base or IMU frame.
 
     Attributes:
-        robot : obj:'pinocchio.RobotWrapper'
         rmodel : obj:'pinocchio.Model'
         rdata : obj:'pinocchio.Data'
         nx : int
@@ -36,15 +34,20 @@ class EKF:
             Initial configuration of the robot.
         dt : float
             Discretization time.
-        g_vector : np.array(3,)
+        g_vector : np.array(3,1)
             Gravity acceleration vector.
         base_frame_name : str
-        end_effectors_frame_names : dict
+        end_effectors_frame_names : list
+        nb_ee : int
+            Number of end_effectors
         ekf_in_imu_frame : bool
             False, EKF default frame is in the Base frame. True, EKF_frame is in the IMU frame.
+        base_state : dict
+            Base states estimated by EKF.
+            (x_base = {p:(np.array(3,1)), v:(np.array(3,1)), q:(pinocchio.Quaternion)).
         mu_pre : dict
             A priori estimate of the mean of the state vector,
-            (x = {p:(np.array(3,)), v:(np.array(3,)), q:(pinocchio.Quaternion), b_a:(np.array(3,)), b_omega:(np.array(3,))}).
+            (x = {p:(np.array(3,1)), v:(np.array(3,1)), q:(pinocchio.Quaternion), b_a:(np.array(3,1)), b_omega:(np.array(3,1))}).
         mu_post : dict
             A posteriori estimate of the mean of the state vector (x).
         Sigma_pre : np.array(15,15)
@@ -56,35 +59,42 @@ class EKF:
         SE3_base_to_imu : pinocchio.SE3
             SE3 transformation from Base to IMU.
         Q_a : np.array(3,3)
-            Continuous acceleration noise covariance.
+            Continuous accelerometer noise covariance.
         Q_omega : np.array(3,3)
-            Continuous angular velocity noise covariance.
+            Continuous gyroscope noise covariance.
         Qb_a : np.array(3,3)
-            Continuous bias linear acceleration noise covariance.
+            Continuous accelerometer bias noise covariance.
         Qb_omega : np.array(3,3)
-            Continuous bias angular rate noise covariance.
-        R : np.array(12,12)
+            Continuous gyroscope bias noise covariance.
+        R : ndarray
             Continuous measurement noise covariance.
     """
 
-    def __init__(self, conf, dt=0.001):
+    def __init__(self, robot_config, dt=0.001):
         """Initializes the EKF.
 
         Args:
-            conf: File that describes the name, frame names, properties of the robot and noise covariance matrices of IMU.
+            robot_config : Configuration file of the robot.
             dt (float): Discretization time.
         """
         # private members
-        self.__robot = robex.load(conf.robot_name)
-        self.__rmodel = self.__robot.model
+        self.__rmodel = robot_config.robot_model
         self.__rdata = self.__rmodel.createData()
         self.__nx = 5 * 3
-        self.__init_robot_config = np.copy(self.__robot.q0)
+        self.__init_robot_config = np.copy(robot_config.initial_configuration)
         self.__dt = dt
         self.__g_vector = np.array([0, 0, -9.81])
-        self.__base_frame_name = conf.base_link_name
-        self.__end_effectors_frame_names = conf.end_effectors_frame_names
+        self.__base_frame_name = robot_config.base_link_name
+        self.__end_effectors_frame_names = robot_config.end_effector_names
+        self.__nb_ee = len(self.__end_effectors_frame_names)
         self.__ekf_in_imu_frame = False
+        self.__base_state = dict.fromkeys(
+            [
+                "base_position",
+                "base_velocity",
+                "base_orientation",
+            ]
+        )
         self.__mu_pre = dict.fromkeys(
             [
                 "ekf_frame_position",
@@ -108,37 +118,40 @@ class EKF:
         self.__omega_hat = np.zeros(3)
         self.__omega_base_prev = np.zeros(3)
         self.__base_ang_acc = np.zeros(3)
-        self.__SE3_imu_to_base = conf.SE3_imu_to_base
+        self.__SE3_imu_to_base = pin.SE3(
+            robot_config.rot_base_to_imu.T, robot_config.r_base_to_imu
+        )
         self.__SE3_base_to_imu = self.__SE3_imu_to_base.inverse()
-        self.__Q_a = self.__dt * conf.Q_a
-        self.__Q_omega = self.__dt * conf.Q_omega
-        self.__Qb_a = conf.Qb_a
-        self.__Qb_omega = conf.Qb_omega
-        self.__R = conf.R
+        self.__Q_a = self.__dt * np.diag((0.0001962 ** 2) * np.ones([3]))
+        self.__Q_omega = self.__dt * np.diag((0.0000873 ** 2) * np.ones([3]))
+        self.__Qb_a = np.diag((0.0001 ** 2) * np.ones([3]))
+        self.__Qb_omega = np.diag((0.000309 ** 2) * np.ones([3]))
+        self.__R = np.zeros((3*self.__nb_ee, 3*self.__nb_ee), dtype=float)
+        np.fill_diagonal(self.__R, np.array([1e-5, 1e-5, 1e-5]))
         # call private methods
         self.__init_filter()
 
     # private methods
     def __init_filter(self):
         """Sets the initial values for the 'a posteriori estimate'."""
-        M = self.__compute_base_pose_se3(self.__init_robot_config)
-        rot_base_to_world = M.rotation
+        base_se3 = self.__compute_base_pose_se3(self.__init_robot_config)
         if self.__ekf_in_imu_frame:
-            rot_imu_to_base = self.__SE3_imu_to_base.rotation
-            q = Quaternion(rot_base_to_world @ rot_imu_to_base)
-            q.normalize()
-            self.__mu_post[
-                "ekf_frame_position"
-            ] = M.translation + rot_base_to_world.dot(
-                self.__SE3_imu_to_base.translation
+            base_motion = pin.Motion(
+                np.zeros(3, dtype=float), np.zeros(3, dtype=float)
             )
-            self.__mu_post["ekf_frame_orientation"] = q
-        else:
-            q = Quaternion(rot_base_to_world)
+            imu_se3 = base_se3.act(self.__SE3_imu_to_base)
+            imu_motion = self.__SE3_imu_to_base.actInv(base_motion)
+            q = Quaternion(imu_se3.rotation)
             q.normalize()
-            self.__mu_post["ekf_frame_position"] = M.translation
+            self.__mu_post["ekf_frame_position"] = imu_se3.translation
             self.__mu_post["ekf_frame_orientation"] = q
-        self.__mu_post["ekf_frame_velocity"] = np.zeros(3, dtype=float)
+            self.__mu_post["ekf_frame_velocity"] = imu_motion.linear
+        else:
+            q = Quaternion(base_se3.rotation)
+            q.normalize()
+            self.__mu_post["ekf_frame_position"] = base_se3.translation
+            self.__mu_post["ekf_frame_orientation"] = q
+            self.__mu_post["ekf_frame_velocity"] = np.zeros(3, dtype=float)
         self.__mu_post["imu_bias_acceleration"] = np.zeros(3, dtype=float)
         self.__mu_post["imu_bias_orientation"] = np.zeros(3, dtype=float)
 
@@ -160,55 +173,7 @@ class EKF:
 
     # public methods
     # accessors
-    def get_robot_model(self):
-        """Returns the robot's model.
-
-        Returns:
-            pinocchio.Model
-        """
-        return self.__rmodel
-
-    def get_robot_data(self):
-        """Returns the robot's data.
-
-        Returns:
-            pinocchio.Data
-        """
-        return self.__rdata
-
-    def get_dt(self):
-        """Returns the discretization time.
-
-        Returns:
-            float
-        """
-        return self.__dt
-
-    def get_g_vector(self):
-        """Returns the gravity acceleration vector.
-
-        Returns:
-            np.array(3,)
-        """
-        return self.__g_vector
-
-    def get_mu_pre(self):
-        """Returns the 'a priori estimate of the mean of the state vector'.
-
-        Returns:
-            dict
-        """
-        return self.__mu_pre
-
-    def get_mu_post(self):
-        """Returns the 'a posteriori estimate of the mean of the state vector'.
-
-        Returns:
-            dict
-        """
-        return self.__mu_post
-
-    def get_ekf_frame(self):
+    def get_is_in_imu_frame(self):
         """Returns a boolean value for the ekf frame location.
 
         Returns:
@@ -222,7 +187,7 @@ class EKF:
 
         Args:
             key (str): Key of the state in the dictionary.
-            value (np.array(3,)) or (pinocchio.Quaternion): Value for the corresponding state.
+            value (np.array(3,1)) or (pinocchio.Quaternion): Value for the corresponding state.
         """
         self.__mu_pre[key] = value
 
@@ -231,7 +196,7 @@ class EKF:
 
         Args:
             key (str): Key of the state in the dictionary.
-            value (np.array(3,)) or (pinocchio.Quaternion): Value for the corresponding state.
+            value (np.array(3,1)) or (pinocchio.Quaternion): Value for the corresponding state.
         """
         self.__mu_post[key] = value
 
@@ -242,18 +207,27 @@ class EKF:
             bool_value (bool): False in Base frame, True in IMU frame.
         """
         self.__ekf_in_imu_frame = bool_value
-        self.__init_filter()
+        if bool_value:
+            self.__init_filter()
 
     def set_SE3_imu_to_base(self, rotation, translation):
         """Sets the SE3 transformation from IMU to Base, and updates SE3 from Base to IMU.
 
         Args:
             rotation (np.array(3,3))
-            translation (np.array(3,))
+            translation (np.array(3,1))
         """
         self.__SE3_imu_to_base.rotation = rotation
         self.__SE3_imu_to_base.translation = translation
         self.__SE3_base_to_imu = self.__SE3_imu_to_base.inverse()
+
+    def set_meas_noise_cov(self, value):
+        """Sets a value for continuous measurement noise covariance.
+
+        Args:
+            value (np.array(3,1))
+        """
+        np.fill_diagonal(self.__R, value)
 
     def compute_end_effectors_FK_quantities(
         self, joint_positions, joint_velocities
@@ -265,24 +239,26 @@ class EKF:
             joint_velocities (ndarray): Generalized joint velocities.
 
         Returns:
-            dict: Position of all feet in the base frame.
-            dict: Linear velocity of all feet in the base frame.
+            list: Position of all feet in the base frame.
+            list: Linear velocity of all feet in the base frame.
         """
         # locking the base frame to the world frame
         base_pose = np.zeros(7)
         base_pose[6] = 1.0
         robot_configuration = np.concatenate([base_pose, joint_positions])
         robot_velocity = np.concatenate([np.zeros(6), joint_velocities])
-        end_effectors_positions = {}
-        end_effectors_velocities = {}
+        end_effectors_positions = []
+        end_effectors_velocities = []
         pin.forwardKinematics(
             self.__rmodel, self.__rdata, robot_configuration, robot_velocity
         )
         pin.framesForwardKinematics(
             self.__rmodel, self.__rdata, robot_configuration
         )
-        for key, frame_name in self.__end_effectors_frame_names.items():
-            frame_index = self.__rmodel.getFrameId(frame_name)
+        for i in range(self.__nb_ee):
+            frame_index = self.__rmodel.getFrameId(
+                self.__end_effectors_frame_names[i]
+            )
             frame_position = self.__rdata.oMf[frame_index].translation
             frame_velocity = pin.getFrameVelocity(
                 self.__rmodel,
@@ -290,16 +266,16 @@ class EKF:
                 frame_index,
                 pin.LOCAL_WORLD_ALIGNED,
             )
-            end_effectors_positions[key] = frame_position
-            end_effectors_velocities[key] = frame_velocity.linear
+            end_effectors_positions.append(frame_position)
+            end_effectors_velocities.append(frame_velocity.linear)
         return end_effectors_positions, end_effectors_velocities
 
     def integrate_model(self, a_tilde, omega_tilde):
         """Calculates the 'a priori estimate of the mean of the state vector' from deterministic transient model by first_order integration.
 
         Args:
-            a_tilde (np.array(3,)): IMU linear acceleration in the IMU frame.
-            omega_tilde (np.array(3,)): IMU angular velocity in the IMU frame.
+            a_tilde (np.array(3,1)): IMU accelerometer in the IMU frame.
+            omega_tilde (np.array(3,1)): IMU gyroscope in the IMU frame.
         """
         dt, g = self.__dt, self.__g_vector
         mu_post = self.__mu_post
@@ -362,7 +338,7 @@ class EKF:
         """
         dt, g = self.__dt, self.__g_vector
         Fc = np.zeros((self.__nx, self.__nx), dtype=float)
-        mu_pre = self.get_mu_pre()
+        mu_pre = self.__mu_pre
         q_pre = mu_pre["ekf_frame_orientation"]
         v_pre = mu_pre["ekf_frame_velocity"]
         omega_hat = self.__omega_hat
@@ -428,7 +404,7 @@ class EKF:
         """Returns the discrete measurement noise covariance.
 
         Returns:
-            np.array(12,12)
+            ndarray
         """
         return (1 / self.__dt) * self.__R
 
@@ -448,51 +424,49 @@ class EKF:
         """Returns the discrete measurement jacobian matrix and the measurement residual.
 
         Args:
-            contacts_schedule (dic): Logical contact schedule of the feet.
+            contacts_schedule (list): Contact schedule of the feet.
             joint_positions (ndarray): Generalized joint positions.
             joint_velocities (ndarray): Generalized joint velocities.
 
         Returns:
-            np.array(12,15): Discrete measurement jacobian matrix.
-            np.array(12,): Measurement residual.
+            ndarray: Discrete measurement jacobian matrix.
+            ndarray: Measurement residual.
         """
-        Hk = np.zeros((12, self.__nx))  # 12x15
-        predicted_frame_velocity = np.zeros(12)
-        measured_frame_velocity = np.zeros(12)
+        Hk = np.zeros((3*self.__nb_ee, self.__nx))
+        predicted_frame_velocity = np.zeros(3*self.__nb_ee)
+        measured_frame_velocity = np.zeros(3*self.__nb_ee)
         # end effectors frame positions and velocities expressed in the base frame
         ee_positions, ee_velocities = self.compute_end_effectors_FK_quantities(
             joint_positions, joint_velocities
         )
-        # compute measurement jacobian
-        Hk[0:3, 3:6] = Hk[3:6, 3:6] = Hk[6:9, 3:6] = Hk[9:12, 3:6] = np.eye(3)
-        Hk[0:3, 12:15] = pin.skew(ee_positions["FL"])
-        Hk[3:6, 12:15] = pin.skew(ee_positions["FR"])
-        Hk[6:9, 12:15] = pin.skew(ee_positions["HL"])
-        Hk[9:12, 12:15] = pin.skew(ee_positions["HR"])
         i = 0
-        for key, value in contacts_schedule.items():
+        for index in range(self.__nb_ee):
             # check if foot is in contact based on contact schedule
-            if value:
-                predicted_frame_velocity[i : i + 3] = self.__mu_pre[
+            if contacts_schedule[index]:
+                # compute measurement jacobian
+                Hk[i:i+3, 3:6] = np.eye(3)
+                Hk[i:i+3, 12:15] = pin.skew(ee_positions[index])
+                # get the predicted frame velocity
+                predicted_frame_velocity[i: i + 3] = self.__mu_pre[
                     "ekf_frame_velocity"
                 ]
                 if self.__ekf_in_imu_frame:
                     base_motion = pin.Motion(
-                        -ee_velocities[key]
-                        - pin.skew(self.__omega_hat) @ ee_positions[key],
+                        -ee_velocities[index]
+                        - pin.skew(self.__omega_hat) @ ee_positions[index],
                         self.__SE3_imu_to_base.rotation @ self.__omega_hat,
                     )
                     measured_frame_velocity[
-                        i : i + 3
+                        i: i + 3
                     ] = self.__SE3_base_to_imu.act(base_motion).linear
                 else:
-                    measured_frame_velocity[i : i + 3] = (
-                        -ee_velocities[key]
-                        - pin.skew(self.__omega_hat) @ ee_positions[key]
+                    measured_frame_velocity[i: i + 3] = (
+                        -ee_velocities[index]
+                        - pin.skew(self.__omega_hat) @ ee_positions[index]
                     )
             else:
-                predicted_frame_velocity[i : i + 3] = np.zeros(3)
-                measured_frame_velocity[i : i + 3] = np.zeros(3)
+                predicted_frame_velocity[i: i + 3] = np.zeros(3)
+                measured_frame_velocity[i: i + 3] = np.zeros(3)
             i += 3
         error = measured_frame_velocity - predicted_frame_velocity
         return Hk, error
@@ -501,11 +475,11 @@ class EKF:
         """Returns the innovation covariance matrix.
 
         Args:
-            Hk (np.array(12,15)): Discrete measurement jacobian matrix.
-            Rk (np.array(12,12)): Discrete measurement noise covariance.
+            Hk (ndarray): Discrete measurement jacobian matrix.
+            Rk (ndarray): Discrete measurement noise covariance.
 
         Returns:
-            np.array(12,12)
+            ndarray
         """
         return (Hk @ self.__Sigma_pre @ Hk.T) + Rk
 
@@ -516,7 +490,7 @@ class EKF:
             based on new kinematic measurements.
 
         Args:
-            contacts_schedule (dic): Logical contact schedule of the feet.
+            contacts_schedule (list): Contact schedule of the feet.
             joint_positions (ndarray): Generalized joint positions.
             joint_velocities (ndarray): Generalized joint velocities.
         """
@@ -536,9 +510,9 @@ class EKF:
         self.__mu_post["ekf_frame_velocity"] = (
             self.__mu_pre["ekf_frame_velocity"] + delta_x[3:6]
         )
-        self.__mu_post["ekf_frame_orientation"] = Quaternion(
-            box_plus(R_pre, delta_x[6:9])
-        )
+        q_post = Quaternion(box_plus(R_pre, delta_x[6:9]))
+        q_post.normalize()
+        self.__mu_post["ekf_frame_orientation"] = q_post
         self.__mu_post["imu_bias_acceleration"] = (
             self.__mu_pre["imu_bias_acceleration"] + delta_x[9:12]
         )
@@ -546,14 +520,74 @@ class EKF:
             self.__mu_pre["imu_bias_orientation"] + delta_x[12:15]
         )
 
+    def update_filter(
+        self, a_tilde, omega_tilde, contacts_schedule, joint_positions, joint_velocities
+    ):
+        """Updates the filter.
+
+        Args:
+            a_tilde (np.array(3,1)): IMU accelerometer in the IMU frame.
+            omega_tilde (np.array(3,1)): IMU gyroscope in the IMU frame.
+            contacts_schedule (list): Contact schedule of the feet.
+            joint_positions (ndarray): Generalized joint positions.
+            joint_velocities (ndarray): Generalized joint velocities.
+        """
+        self.integrate_model(a_tilde, omega_tilde)
+        self.prediction_step()
+        self.update_step(contacts_schedule, joint_positions, joint_velocities)
+
+    def get_filter_output(self):
+        """Returns the base states, estimated by the EKF.
+
+        Returns:
+            dict
+        """
+        # mu post is expressed in the imu frame
+        if self.__ekf_in_imu_frame:
+            imu_se3 = pin.SE3(
+                self.__mu_post["ekf_frame_orientation"].matrix(),
+                self.__mu_post["ekf_frame_position"]
+            )
+            imu_motion = pin.Motion(
+                self.__mu_post["ekf_frame_velocity"],
+                self.__omega_hat
+            )
+            base_se3 = imu_se3.act(self.__SE3_base_to_imu)
+            base_motion = self.__SE3_imu_to_base.act(imu_motion)
+            q = Quaternion(base_se3.rotation)
+            q.normalize()
+            self.__base_state["base_position"] = base_se3.translation
+            self.__base_state["base_velocity"] = base_motion.linear
+            self.__base_state["base_orientation"] = q
+        # mu post is expressed in the base frame.
+        else:
+            self.__base_state["base_position"] = (
+                self.__mu_post["ekf_frame_position"]
+            )
+            self.__base_state["base_velocity"] = (
+                self.__mu_post["ekf_frame_velocity"]
+            )
+            self.__base_state["base_orientation"] = (
+                self.__mu_post["ekf_frame_orientation"]
+            )
+        return self.__base_state
+
 
 if __name__ == "__main__":
-    solo_EKF = EKF(conf)
+    robot_config = Solo12Config()
+    solo_EKF = EKF(robot_config)
+    solo_EKF.set_meas_noise_cov(np.array([1e-4, 1e-4, 1e-4]))
     f_tilde = random.rand(3)
     w_tilde = random.rand(3)
-    solo_EKF.integrate_model(f_tilde, w_tilde)
-    solo_EKF.prediction_step()
-    contacts_schedule = {"FL": True, "FR": True, "HL": True, "HR": True}
+    # contacts schedule for solo12 end_effoctors: ['FL_FOOT', 'FR_FOOT', 'HL_FOOT', 'HR_FOOT']
+    contacts_schedule = [True, True, True, True]
     joint_positions = random.rand(12)
     joint_velocities = random.rand(12)
-    solo_EKF.update_step(contacts_schedule, joint_positions, joint_velocities)
+    solo_EKF.update_filter(
+        f_tilde,
+        w_tilde,
+        contacts_schedule,
+        joint_positions,
+        joint_velocities,
+    )
+    base_state = solo_EKF.get_filter_output()
