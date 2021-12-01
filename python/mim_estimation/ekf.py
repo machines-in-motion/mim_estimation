@@ -173,54 +173,6 @@ class EKF:
 
     # public methods
     # accessors
-    def get_robot_model(self):
-        """Returns the robot's model.
-
-        Returns:
-            pinocchio.Model
-        """
-        return self.__rmodel
-
-    def get_robot_data(self):
-        """Returns the robot's data.
-
-        Returns:
-            pinocchio.Data
-        """
-        return self.__rdata
-
-    def get_dt(self):
-        """Returns the discretization time.
-
-        Returns:
-            float
-        """
-        return self.__dt
-
-    def get_g_vector(self):
-        """Returns the gravity acceleration vector.
-
-        Returns:
-            np.array(3,)
-        """
-        return self.__g_vector
-
-    def get_mu_pre(self):
-        """Returns the 'a priori estimate of the mean of the state vector'.
-
-        Returns:
-            dict
-        """
-        return self.__mu_pre
-
-    def get_mu_post(self):
-        """Returns the 'a posteriori estimate of the mean of the state vector'.
-
-        Returns:
-            dict
-        """
-        return self.__mu_post
-
     def get_ekf_frame(self):
         """Returns a boolean value for the ekf frame location.
 
