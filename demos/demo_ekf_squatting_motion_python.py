@@ -12,7 +12,6 @@ from bullet_utils.env import BulletEnvWithGround
 from robot_properties_solo.solo12wrapper import Solo12Robot, Solo12Config
 from robot_properties_bolt.bolt_wrapper import BoltRobot, BoltConfig
 from mim_estimation.ekf import EKF
-import mim_estimation.conf as conf
 import matplotlib.pyplot as plt
 import pinocchio as pin
 
@@ -118,8 +117,9 @@ def demo(robot_name, sim_time):
     base_rpy_ekf = np.zeros((T, 3), float)
 
     # Create EKF instance, and set the EKF_frame
-    solo_ekf = EKF(conf)
+    solo_ekf = EKF(robot_config)
     solo_ekf.set_ekf_in_imu_frame(False)
+    solo_ekf.set_R(np.array([1e-4, 1e-4, 1e-4]))
 
     # Run the simulator for the trajectory
     for i in range(T):
@@ -162,15 +162,11 @@ def demo(robot_name, sim_time):
                     "ekf_frame_orientation", pin.Quaternion(q[3:7])
                 )
 
-        # EKF prediction step
-        solo_ekf.integrate_model(
-            robot.get_base_imu_linacc(), robot.get_base_imu_angvel()
+        # EKF update with all feet in contact
+        contacts_schedule = np.array([1, 1, 1, 1])
+        solo_ekf.update_filter(
+            robot.get_base_imu_linacc(), robot.get_base_imu_angvel(), contacts_schedule, q[7:], dq[6:]
         )
-        solo_ekf.prediction_step()
-
-        # EKF update step with all feet in contact
-        contacts_schedule = {"FL": True, "FR": True, "HL": True, "HR": True}
-        solo_ekf.update_step(contacts_schedule, q[7:], dq[6:])
 
         # Read the values of position, velocity and orientation of the base from robot
         base_pos[i, :] = q[:3]
@@ -179,7 +175,7 @@ def demo(robot_name, sim_time):
         base_rpy[i, :] = pin.utils.matrixToRpy(q_base.matrix())
 
         # Read the values of position, velocity and orientation of the base from EKF
-        base_state = solo_ekf.get_ekf_output()
+        base_state = solo_ekf.get_filter_output()
         base_pos_ekf[i, :] = base_state.get("base_position")
         base_vel_ekf[i, :] = base_state.get("base_velocity")
         q_ekf = base_state.get("base_orientation")
