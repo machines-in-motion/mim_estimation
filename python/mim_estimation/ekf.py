@@ -576,7 +576,7 @@ class EKF:
 if __name__ == "__main__":
     robot_config = Solo12Config()
     solo_EKF = EKF(robot_config)
-    solo_EKF.set_R(np.array([1e-4, 1e-4, 1e-4]))
+    solo_EKF.set_meas_noise_cov(np.array([1e-4, 1e-4, 1e-4]))
     f_tilde = random.rand(3)
     w_tilde = random.rand(3)
     # contacts schedule for solo12 end_effoctors: ['FL_FOOT', 'FR_FOOT', 'HL_FOOT', 'HR_FOOT']
