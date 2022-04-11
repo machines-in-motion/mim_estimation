@@ -107,17 +107,17 @@ void BaseEkfWithImuKin::set_initial_state(
     {
         pinocchio::SE3 pos_base_in_world(base_attitude.toRotationMatrix(),
                                          base_position);
-        pinocchio::Motion vel_base_in_world(base_linear_velocity,
+        pinocchio::Motion vel_base_in_base(base_linear_velocity,
                                             base_angular_velocity);
 
         pinocchio::SE3 pos_imu_in_world =
             pos_base_in_world.act(settings_.imu_in_base);
-        pinocchio::Motion vel_imu_in_world =
-            settings_.imu_in_base.act(vel_base_in_world);
+        pinocchio::Motion vel_imu_in_imu =
+            settings_.imu_in_base.act(vel_base_in_base);
 
         posterior_state_.position = pos_imu_in_world.translation();
         posterior_state_.attitude = pos_imu_in_world.rotation();
-        posterior_state_.linear_velocity = vel_imu_in_world.linear();
+        posterior_state_.linear_velocity = vel_imu_in_imu.linear();
     }
     else
     {
@@ -501,5 +501,71 @@ void BaseEkfWithImuKin::update_step(
     posterior_state_.bias_accelerometer =
         predicted_state_.bias_gyroscope + delta_state_.segment<3>(12);
 }
+
+void BaseEkfWithImuKin::compute_base_pose_to_midline(
+    const std::vector<bool>& contact_schedule,
+    Eigen::Ref<const Eigen::VectorXd> joint_position,
+    Eigen::Ref<const Eigen::VectorXd> joint_velocity)
+{
+    const pinocchio::Model& pinocchio_model = settings_.pinocchio_model;
+    int nb_joint_dof = pinocchio_model.nq - 7;
+    assert(joint_position.size() == nb_joint_dof &&
+           "'joint_position' has wrong size.");
+    assert(joint_velocity.size() == nb_joint_dof &&
+           "'joint_velocity' has wrong size.");
+
+    // Fill in the robot configuration and velocity.
+    q_kin_.fill(0.0);
+    q_kin_(6) = 1.0;
+    q_kin_.segment(7, nb_joint_dof) = joint_position;
+    dq_kin_.head<6>().fill(0.0);
+    dq_kin_.segment(6, nb_joint_dof) = joint_velocity;
+
+    // Perform the Forward kinematics.
+    pinocchio::forwardKinematics(
+        pinocchio_model, pinocchio_data_, q_kin_, dq_kin_);
+    pinocchio::framesForwardKinematics(
+        pinocchio_model, pinocchio_data_, q_kin_);
+
+    predicted_state_.position = Eigen::Vector3d::Zero();
+    for (int i = 0; i < 4; ++i)
+    {
+        if (contact_schedule[i])
+        {
+            pinocchio::updateFramePlacement(
+                pinocchio_model, pinocchio_data_, kin_ee_fid_[i]);
+
+            kin_ee_position_[i] = pinocchio_data_.oMf[kin_ee_fid_[i]].translation();
+            predicted_state_.position = predicted_state_.position - 0.5 * kin_ee_position_[i];
+        }
+    }
+}
+
+void BaseEkfWithImuKin::prediction(
+    Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
+    Eigen::Ref<const Eigen::Vector3d> imu_gyroscope)
+{
+    // internal copy of the joint readings.
+    imu_gyroscope_ = imu_gyroscope;
+    imu_accelerometer_ = imu_accelerometer;
+
+    // Compute the EKF output from prediction step.
+    integrate_process_model(imu_accelerometer, imu_gyroscope);
+    prediction_step();
+}
+
+void BaseEkfWithImuKin::update(
+    const std::vector<bool>& contact_schedule,
+    Eigen::Ref<const Eigen::VectorXd> joint_position,
+    Eigen::Ref<const Eigen::VectorXd> joint_velocity)
+{
+    // internal copy of the joint readings.
+    joint_position_ = joint_position;
+    joint_velocity_ = joint_velocity;
+
+    // Compute the EKF output from update step.
+    update_step(contact_schedule, joint_position, joint_velocity);
+}
+
 
 }  // namespace mim_estimation

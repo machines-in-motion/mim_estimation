@@ -68,6 +68,8 @@ public:
         Eigen::Ref<const Eigen::VectorXd> initial_robot_configuration,
         Eigen::Ref<const Eigen::VectorXd> initial_robot_velocity);
 
+    void set_settings(const RobotStateEstimatorSettings& settings);
+
 private:
     /**
      * @brief Signal callback for the one_iteration_sout_ signal.
@@ -167,7 +169,9 @@ private:
      * frame.
      */
     std::deque<std::unique_ptr<SignalOut> > force_sout_;
-
+    int flag;
+    int sum_cnt_pre;
+    int sum_cnt_post;
     /** @brief State estimator wrapped by this entity. */
     mim_estimation::RobotStateEstimator estimator_;
 };

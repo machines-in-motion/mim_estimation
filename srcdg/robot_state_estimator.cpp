@@ -12,6 +12,7 @@
 #include "robot_state_estimator.hpp"
 
 #include <iostream>
+#include <numeric>
 
 #include "signal_utils.hpp"
 
@@ -122,6 +123,13 @@ void RobotStateEstimator::set_initial_state(
 {
     estimator_.set_initial_state(initial_robot_configuration,
                                  initial_robot_velocity);
+    flag = -1;
+}
+
+void RobotStateEstimator::set_settings(
+    const RobotStateEstimatorSettings& settings)
+{
+    estimator_.set_settings(settings);
 }
 
 int& RobotStateEstimator::signal_callback_one_iteration(int& res,
@@ -142,6 +150,50 @@ int& RobotStateEstimator::signal_callback_one_iteration(int& res,
                    joint_velocity,
                    joint_torque);
 
+    // one_iteration_sout_.access(time);
+    std::vector<bool> detected_contact = estimator_.get_detected_contact();
+
+    if (flag == -1){
+        flag = time-1;
+        sum_cnt_pre = 0;
+        std::cout << "#####" << flag << "#####" <<std::endl; 
+    }
+    
+    // if ((time > flag+6500) & (time < flag+35000))
+    // {
+    //     int sum_cnt =  std::accumulate(detected_contact.begin(), detected_contact.end(), 0);
+    //     if (sum_cnt == 2)
+    //     {
+    //         sum_cnt_post = 2;
+    //         if (sum_cnt_post - sum_cnt_pre == 2)
+    //         {
+    //             estimator_.compute_midline(detected_contact,
+    //                                        joint_position,
+    //                                        joint_velocity);
+    //             sum_cnt_pre = sum_cnt_post;
+    //         }
+
+    //     }
+    //     if (sum_cnt == 0)
+    //     {
+    //         sum_cnt_post = 0;
+    //         sum_cnt_pre = 0;
+    //     }
+    // }
+
+    if (time > flag+35000)
+    {
+        std::vector<bool> all_contact = { 1, 1, 1, 1 };
+        estimator_.run(all_contact,
+                   joint_position,
+                   joint_velocity);
+    } 
+    else 
+    {
+        estimator_.run(detected_contact,
+                   joint_position,
+                   joint_velocity);
+    }
     res = 1.0;
     return res;
 }

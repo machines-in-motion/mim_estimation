@@ -91,6 +91,17 @@ public:
      * @param joint_velocity 
      * @param joint_torque 
      */
+     void run(Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
+         Eigen::Ref<const Eigen::Vector3d> imu_gyroscope);
+
+    void run(const std::vector<bool>& contact_schedule,
+         Eigen::Ref<const Eigen::VectorXd> joint_position,
+         Eigen::Ref<const Eigen::VectorXd> joint_velocity);
+
+    void compute_midline(const std::vector<bool>& contact_schedule,
+                     Eigen::Ref<const Eigen::VectorXd> joint_position,
+                     Eigen::Ref<const Eigen::VectorXd> joint_velocity);
+                     
     void run(const std::vector<bool>& contact_schedule,
              Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
              Eigen::Ref<const Eigen::Vector3d> imu_gyroscope,
@@ -112,6 +123,8 @@ public:
              Eigen::Ref<const Eigen::VectorXd> joint_position,
              Eigen::Ref<const Eigen::VectorXd> joint_velocity,
              Eigen::Ref<const Eigen::VectorXd> joint_torque);
+
+    void set_settings(const RobotStateEstimatorSettings& settings);
 
     void get_state(Eigen::Ref<Eigen::VectorXd> robot_configuration,
                    Eigen::Ref<Eigen::VectorXd> robot_velocity);

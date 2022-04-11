@@ -44,5 +44,8 @@ BOOST_PYTHON_MODULE(entities)
             "Initialize the RobotStateEstimator.")
         .def("set_initial_state",
              &RobotStateEstimator::set_initial_state,
-             "Set the initial state using the generalized coordinates.");
+             "Set the initial state using the generalized coordinates.")
+        .def("set_settings",
+             &RobotStateEstimator::set_settings,
+             "Set the estimator settings.");
 }

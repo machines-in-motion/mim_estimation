@@ -78,7 +78,7 @@ struct BaseEkfWithImuKinSettings
 
     /** @brief Continuous measurement noise covariance. */
     Eigen::Vector3d meas_noise_cov =
-        (Eigen::Vector3d() << 1e-5, 1e-5, 1e-8).finished();
+        (Eigen::Vector3d() << 1e-5, 1e-5, 1e-5).finished();
 
     virtual std::string to_string()
     {
@@ -181,6 +181,17 @@ public:
                        Eigen::Ref<const Eigen::VectorXd> joint_position,
                        Eigen::Ref<const Eigen::VectorXd> joint_velocity);
 
+    void compute_base_pose_to_midline(const std::vector<bool>& contact_schedule,
+                                  Eigen::Ref<const Eigen::VectorXd> joint_position,
+                                  Eigen::Ref<const Eigen::VectorXd> joint_velocity);
+
+    void prediction(Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
+                Eigen::Ref<const Eigen::Vector3d> imu_gyroscope);
+
+    void update(const std::vector<bool>& contact_schedule,
+            Eigen::Ref<const Eigen::VectorXd> joint_position,
+            Eigen::Ref<const Eigen::VectorXd> joint_velocity);
+            
     /**
      * @brief Get the filter output which is the robot state.
      *

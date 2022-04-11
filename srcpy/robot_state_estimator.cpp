@@ -38,18 +38,28 @@ void bind_robot_state_estimator()
         .def("initialize",
              &RobotStateEstimator::initialize,
              "Set the estimator settings.")
+        .def("set_settings",
+             &RobotStateEstimator::set_settings,
+             "Set the estimator settings.")
         .def("set_initial_state",
              &RobotStateEstimator::set_initial_state,
              "Set the initial state using generalized coordinates.")
+        .def("compute_midline",
+             &RobotStateEstimator::compute_midline,
+         "compute base position to midline of feet in contact, using joint positions and velocities.")
         .def("run",
              static_cast<void(
                  (RobotStateEstimator::*)(const std::vector<bool>&,
-                                          Eigen::Ref<const Eigen::Vector3d>,
-                                          Eigen::Ref<const Eigen::Vector3d>,
                                           Eigen::Ref<const Eigen::VectorXd>,
                                           Eigen::Ref<const Eigen::VectorXd>))>(
                  &RobotStateEstimator::run),
              "Execute the estimation (including contact) from input data.")
+        .def("run",
+             static_cast<void(
+                 (RobotStateEstimator::*)(Eigen::Ref<const Eigen::Vector3d>,
+                                          Eigen::Ref<const Eigen::Vector3d>))>(
+                 &RobotStateEstimator::run),
+         "Execute the estimation (prediction_step) from input data.")
         .def("run",
              static_cast<void(
                  (RobotStateEstimator::*)(Eigen::Ref<const Eigen::Vector3d>,

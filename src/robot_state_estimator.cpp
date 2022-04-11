@@ -52,19 +52,42 @@ void RobotStateEstimator::set_initial_state(
 
 void RobotStateEstimator::run(
     const std::vector<bool>& contact_schedule,
-    Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
-    Eigen::Ref<const Eigen::Vector3d> imu_gyroscope,
     Eigen::Ref<const Eigen::VectorXd> joint_position,
     Eigen::Ref<const Eigen::VectorXd> joint_velocity)
-{
-    base_ekf_with_imu_kin_.update_filter(contact_schedule,
-                                         imu_accelerometer,
-                                         imu_gyroscope,
-                                         joint_position,
-                                         joint_velocity);
+{    
+    base_ekf_with_imu_kin_.update(contact_schedule,
+                                  joint_position,
+                                  joint_velocity);
 
     base_ekf_with_imu_kin_.get_filter_output(current_robot_configuration_,
                                              current_robot_velocity_);
+}
+
+void RobotStateEstimator::run(
+    Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
+    Eigen::Ref<const Eigen::Vector3d> imu_gyroscope)
+{
+    base_ekf_with_imu_kin_.prediction(imu_accelerometer,
+                                      imu_gyroscope);
+    
+    // base_ekf_with_imu_kin_.update_filter(contact_schedule,
+    //                                      imu_accelerometer,
+    //                                      imu_gyroscope,
+    //                                      joint_position,
+    //                                      joint_velocity);
+
+    base_ekf_with_imu_kin_.get_filter_output(current_robot_configuration_,
+                                             current_robot_velocity_);
+}
+
+void RobotStateEstimator::compute_midline(
+    const std::vector<bool>& contact_schedule,
+    Eigen::Ref<const Eigen::VectorXd> joint_position,
+    Eigen::Ref<const Eigen::VectorXd> joint_velocity)
+{
+    base_ekf_with_imu_kin_.compute_base_pose_to_midline(contact_schedule,
+                                                        joint_position,
+                                                        joint_velocity);
 }
 
 void RobotStateEstimator::run(
@@ -107,11 +130,16 @@ void RobotStateEstimator::run(
         }
     }
 
-    run(detected_contact_,
-        imu_accelerometer,
-        imu_gyroscope,
-        joint_position,
-        joint_velocity);
+    run(imu_accelerometer,
+        imu_gyroscope);
+}
+
+void RobotStateEstimator::set_settings(
+    const RobotStateEstimatorSettings& settings)
+{
+    settings_ = settings;
+    settings_.force_threshold_up = settings_.force_threshold_up;
+    settings_.force_threshold_down = settings_.force_threshold_down;
 }
 
 const Eigen::Vector3d& RobotStateEstimator::get_force(
