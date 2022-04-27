@@ -38,6 +38,9 @@ void bind_robot_state_estimator()
         .def("initialize",
              &RobotStateEstimator::initialize,
              "Set the estimator settings.")
+        .def("set_settings",
+             &RobotStateEstimator::set_settings,
+             "Set the estimator settings.")
         .def("set_initial_state",
              &RobotStateEstimator::set_initial_state,
              "Set the initial state using generalized coordinates.")
