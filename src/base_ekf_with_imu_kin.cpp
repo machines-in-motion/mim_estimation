@@ -401,7 +401,7 @@ void BaseEkfWithImuKin::measurement_model(
     Eigen::Ref<const Eigen::VectorXd> joint_position,
     Eigen::Ref<const Eigen::VectorXd> joint_velocity)
 {
-    // end effectors frame positions and velocities expressed in the world frame
+    // end effectors frame positions and velocities expressed in the base frame
     compute_end_effectors_forward_kinematics(joint_position, joint_velocity);
 
     for (unsigned int i = 0; i < settings_.end_effector_frame_names.size(); ++i)
@@ -446,7 +446,7 @@ void BaseEkfWithImuKin::measurement_model(
             meas_jac_.middleRows<3>(i * 3).setZero();
 
             // compute measurement error
-            meas_error_.segment<3>(i + 3).setZero();
+            meas_error_.segment<3>(i * 3).setZero();
         }
     }
 }
@@ -498,7 +498,7 @@ void BaseEkfWithImuKin::update_step(
     posterior_state_.bias_accelerometer =
         predicted_state_.bias_accelerometer + delta_state_.segment<3>(9);
     //
-    posterior_state_.bias_accelerometer =
+    posterior_state_.bias_gyroscope =
         predicted_state_.bias_gyroscope + delta_state_.segment<3>(12);
 }
 
