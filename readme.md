@@ -56,7 +56,7 @@ We use [colcon](https://github.com/machines-in-motion/machines-in-motion.github.
 to build this package:
 ```
 cd devel/workspace
-colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --packages-select mim_estimation
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
 
 Source the environment:
