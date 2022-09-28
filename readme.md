@@ -76,14 +76,6 @@ cd demos
 python3 demo_ekf_squatting_motion_cpp.py
 ```
 
-To run the robot state estimator (including contact-detection and base-EKF) on 
-Solo12, follow the below steps:
-```
-source /opt/openrobots/setup.bash (source open robots)
-cd demos
-python3 demo_ekf_trotting_motion_cpp.py
-```
-
 # License
 
 BSD 3-Clause
