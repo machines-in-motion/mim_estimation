@@ -114,6 +114,14 @@ void RobotStateEstimator::run(
         joint_velocity);
 }
 
+void RobotStateEstimator::set_settings(
+    const RobotStateEstimatorSettings& settings)
+{
+    settings_ = settings;
+    settings_.force_threshold_up = settings_.force_threshold_up;
+    settings_.force_threshold_down = settings_.force_threshold_down;
+}
+
 const Eigen::Vector3d& RobotStateEstimator::get_force(
     const std::string& frame_name)
 {

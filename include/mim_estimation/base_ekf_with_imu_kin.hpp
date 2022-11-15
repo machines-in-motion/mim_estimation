@@ -78,7 +78,7 @@ struct BaseEkfWithImuKinSettings
 
     /** @brief Continuous measurement noise covariance. */
     Eigen::Vector3d meas_noise_cov =
-        (Eigen::Vector3d() << 1e-5, 1e-5, 1e-8).finished();
+        (Eigen::Vector3d() << 1e-5, 1e-5, 1e-5).finished();
 
     virtual std::string to_string()
     {
@@ -157,7 +157,7 @@ public:
      *
      * @param base_se3_position [XYZ Quaternion] SE3 representation of the base
      * position with respect to the world frame.
-     * @param base_se3_velocity [Linear Angular] base velocity in thebase frame.
+     * @param base_se3_velocity [Linear Angular] base velocity in the base frame.
      */
     void set_initial_state(
         Eigen::Ref<const Eigen::Matrix<double, 7, 1> > base_se3_position,
@@ -168,7 +168,7 @@ public:
      * output.
      *
      * @param contact_schedule vector of boolean, if one boolean is true it
-     *                         means that the corresding end-effector is in
+     *                         means that the corresponding end-effector is in
      *                         contact.
      * @param imu_accelerometer imu raw accelerometer data.
      * @param imu_gyroscope imu raw gyroscope data.
@@ -313,13 +313,13 @@ private:
     /** @brief Rigid body dynamics data storage class. */
     pinocchio::Data pinocchio_data_;
 
-    /** @brief Measured end-effectors positions expressend in the imu/base
+    /** @brief Measured end-effectors positions expressed in the imu/base
      * frame.
      */
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >
         kin_ee_position_;
 
-    /** @brief Measured end-effectors velocities expressend in the imu/base
+    /** @brief Measured end-effectors velocities expressed in the imu/base
      * frame.
      */
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> >

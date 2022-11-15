@@ -124,6 +124,8 @@ public:
 
     const Eigen::Vector3d& get_force(const std::string& frame_name);
 
+    void set_settings(const RobotStateEstimatorSettings& settings);
+
     const RobotStateEstimatorSettings& get_settings() const;
 
 private:
