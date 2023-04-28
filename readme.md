@@ -88,6 +88,13 @@ BSD 3-Clause
 
 # Authors
 
+Main authors:
+
+- Shahram Khorshidi
+- Ahmad Gazar
+
+Secondary collaborators
+
 - Maximilien Naveau (mnaveau@tue.mpg.de)
 - Julian Viereck (jviereck@tue.mpg.de)
 - Avadesh Meduri (ameduri@tue.mpg.de)
@@ -95,3 +102,18 @@ BSD 3-Clause
 - Ludovic Righetti (lrighetti@tue.mpg.de)
 - Nick Rotella
 - Brahayam Ponton
+
+# Cite the work
+
+Please if you use this repository cite the work:
+https://arxiv.org/abs/2202.12574
+```
+@misc{khorshidi2023use,
+      title={On the Use of Torque Measurement in Centroidal State Estimation}, 
+      author={Shahram Khorshidi and Ahmad Gazar and Nicholas Rotella and Maximilien Naveau and Ludovic Righetti and Maren Bennewitz and Majid Khadiv},
+      year={2023},
+      eprint={2202.12574},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO}
+}
+```
