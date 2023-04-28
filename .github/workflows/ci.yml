@@ -29,6 +29,12 @@ jobs:
         uses: machines-in-motion/mim_github_actions/setup_ubuntu20_04@main
 
       #
+      # Install the openrobots packages
+      #
+      - name: Setup Openrobots.
+        uses: machines-in-motion/mim_github_actions/setup_laas_packages@main
+
+      #
       # Checkout the current package locally
       #
       - name: Checkout current repo.
