@@ -16,7 +16,7 @@
  * @brief The EndEffectorForceEstimatorTests class: test suit template for
  * setting up the unit tests for the end-effector force estimator
  */
-class EndEffectorForceEstimatorTests : public ::testing::Test
+class EndEffectorForceEstimatorTest : public ::testing::Test
 {
 protected:
     void SetUp()
@@ -34,3 +34,8 @@ protected:
 };
 
 /* ************************ testing of estimator **************************** */
+
+TEST_F(EndEffectorForceEstimatorTest, constructor)
+{
+    mim_estimation::EndEffectorForceEstimator obj;
+}
