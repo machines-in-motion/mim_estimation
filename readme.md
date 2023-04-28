@@ -1,27 +1,33 @@
-mim_estimation
------------
+# mim_estimation
 
-# Introduction
+## Introduction
 
 This package contains estimation algorithm C++ implementations with their Python
 bindings and their Python prototypes.
 
-# Getting started
+## Getting started
 
 ### Installation
 
 #### Dependencies
 
-```
-- Pinocchio
+- Pinocchio (Required)
+    - See [this tutorial](https://github.com/machines-in-motion/machines-in-motion.github.io/wiki/laas_package_from_binaries)
+    in order to install `pinocchio` or you can follow [this tutorial](https://github.com/machines-in-motion/ubuntu_installation_scripts) 
+    to install related robotpkg software.
 - Mim_Control (Optional, needed to run demos)
+    - Internal github organization software see the next paragraph for the installation.
 - Matplotlib (Optional, needed to run demos)
+    - pip or apt installable software.
 - BulletUtils (Optional, needed to run demos)
+    - Internal github organization software see the next paragraph for the installation.
 - Robot_Properties_Solo (Optional, needed to run demos)
+    - Internal github organization software see the next paragraph for the installation.
 - Robot_Properties_Bolt (Optional, needed to run demos)
-```
+    - Internal github organization software see the next paragraph for the installation.
 
-#### Download the package
+
+#### Download the package.
 
 External dependencies:
 See [this tutorial](https://github.com/machines-in-motion/machines-in-motion.github.io/wiki/laas_package_from_binaries)
