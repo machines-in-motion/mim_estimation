@@ -2,12 +2,6 @@ name: check_main_branch_and_deploy_doc
 
 on: [push, pull_request]
 
-env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: ${{ matrix.build_type }}
-  BUILD_FOLDER: ${{github.workspace}}/../build
-  DEVEL_FOLDER: ${{github.workspace}}/../devel
-
 jobs:
   build:
   
@@ -15,6 +9,12 @@ jobs:
       matrix:
           os: [ubuntu-20.04]
           build_type: [Release, Debug]
+
+    env:
+      # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+      BUILD_TYPE: ${{ matrix.build_type }}
+      BUILD_FOLDER: ${{github.workspace}}/../build
+      DEVEL_FOLDER: ${{github.workspace}}/../devel
 
     # The CMake configure and build commands are platform agnostic and should work equally
     # well on Windows or Mac.  You can convert this to a matrix build if you need
