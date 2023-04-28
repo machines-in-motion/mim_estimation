@@ -28,7 +28,7 @@ jobs:
       #
       - name: Setup OS.
         uses: machines-in-motion/mim_github_actions/setup_ubuntu20_04@main
-        if: ${{ ${{ matrix.os }} == "ubuntu-20.04" }}
+        if: ${{ "${{ matrix.os }}" == "ubuntu-20.04" }}
 
       #
       # Checkout the current package locally
