@@ -26,7 +26,7 @@ std::string make_signal_string(const bool& is_input_signal,
     std::string(#var_name).substr(0, std::string(#var_name).size() - 1)
 
 #define define_input_signal(signal_var_name, signal_type) \
-    signal_var_name(nullptr,                                 \
+    signal_var_name(nullptr,                              \
                     make_signal_string(true,              \
                                        CLASS_NAME,        \
                                        name,              \

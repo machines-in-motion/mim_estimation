@@ -22,7 +22,7 @@ def box_minus(R_plus, R):
 
 class EKF:
     """EKF class for estimation of the position, velocity, orientation of the base frame on the robot, and IMU bias_linear_acceleration and bias_angular_rate.
-    Position and orientation are expressed in the world, velocity is expressed in the base_frame, and bias terms are expressed in the IMU frame. EKF_frame 
+    Position and orientation are expressed in the world, velocity is expressed in the base_frame, and bias terms are expressed in the IMU frame. EKF_frame
     can be defined in the Base or IMU frame.
 
     Attributes:
@@ -122,11 +122,11 @@ class EKF:
             robot_config.rot_base_to_imu.T, robot_config.r_base_to_imu
         )
         self.__SE3_base_to_imu = self.__SE3_imu_to_base.inverse()
-        self.__Q_a = self.__dt * np.diag((0.0001962 ** 2) * np.ones([3]))
-        self.__Q_omega = self.__dt * np.diag((0.0000873 ** 2) * np.ones([3]))
-        self.__Qb_a = np.diag((0.0001 ** 2) * np.ones([3]))
-        self.__Qb_omega = np.diag((0.000309 ** 2) * np.ones([3]))
-        self.__R = np.zeros((3*self.__nb_ee, 3*self.__nb_ee), dtype=float)
+        self.__Q_a = self.__dt * np.diag((0.0001962**2) * np.ones([3]))
+        self.__Q_omega = self.__dt * np.diag((0.0000873**2) * np.ones([3]))
+        self.__Qb_a = np.diag((0.0001**2) * np.ones([3]))
+        self.__Qb_omega = np.diag((0.000309**2) * np.ones([3]))
+        self.__R = np.zeros((3 * self.__nb_ee, 3 * self.__nb_ee), dtype=float)
         np.fill_diagonal(self.__R, np.array([1e-5, 1e-5, 1e-5]))
         # call private methods
         self.__init_filter()
@@ -432,9 +432,9 @@ class EKF:
             ndarray: Discrete measurement jacobian matrix.
             ndarray: Measurement residual.
         """
-        Hk = np.zeros((3*self.__nb_ee, self.__nx))
-        predicted_frame_velocity = np.zeros(3*self.__nb_ee)
-        measured_frame_velocity = np.zeros(3*self.__nb_ee)
+        Hk = np.zeros((3 * self.__nb_ee, self.__nx))
+        predicted_frame_velocity = np.zeros(3 * self.__nb_ee)
+        measured_frame_velocity = np.zeros(3 * self.__nb_ee)
         # end effectors frame positions and velocities expressed in the base frame
         ee_positions, ee_velocities = self.compute_end_effectors_FK_quantities(
             joint_positions, joint_velocities
@@ -444,10 +444,10 @@ class EKF:
             # check if foot is in contact based on contact schedule
             if contacts_schedule[index]:
                 # compute measurement jacobian
-                Hk[i:i+3, 3:6] = np.eye(3)
-                Hk[i:i+3, 12:15] = pin.skew(ee_positions[index])
+                Hk[i : i + 3, 3:6] = np.eye(3)
+                Hk[i : i + 3, 12:15] = pin.skew(ee_positions[index])
                 # get the predicted frame velocity
-                predicted_frame_velocity[i: i + 3] = self.__mu_pre[
+                predicted_frame_velocity[i : i + 3] = self.__mu_pre[
                     "ekf_frame_velocity"
                 ]
                 if self.__ekf_in_imu_frame:
@@ -457,16 +457,16 @@ class EKF:
                         self.__SE3_imu_to_base.rotation @ self.__omega_hat,
                     )
                     measured_frame_velocity[
-                        i: i + 3
+                        i : i + 3
                     ] = self.__SE3_base_to_imu.act(base_motion).linear
                 else:
-                    measured_frame_velocity[i: i + 3] = (
+                    measured_frame_velocity[i : i + 3] = (
                         -ee_velocities[index]
                         - pin.skew(self.__omega_hat) @ ee_positions[index]
                     )
             else:
-                predicted_frame_velocity[i: i + 3] = np.zeros(3)
-                measured_frame_velocity[i: i + 3] = np.zeros(3)
+                predicted_frame_velocity[i : i + 3] = np.zeros(3)
+                measured_frame_velocity[i : i + 3] = np.zeros(3)
             i += 3
         error = measured_frame_velocity - predicted_frame_velocity
         return Hk, error
@@ -521,7 +521,12 @@ class EKF:
         )
 
     def update_filter(
-        self, a_tilde, omega_tilde, contacts_schedule, joint_positions, joint_velocities
+        self,
+        a_tilde,
+        omega_tilde,
+        contacts_schedule,
+        joint_positions,
+        joint_velocities,
     ):
         """Updates the filter.
 
@@ -546,11 +551,10 @@ class EKF:
         if self.__ekf_in_imu_frame:
             imu_se3 = pin.SE3(
                 self.__mu_post["ekf_frame_orientation"].matrix(),
-                self.__mu_post["ekf_frame_position"]
+                self.__mu_post["ekf_frame_position"],
             )
             imu_motion = pin.Motion(
-                self.__mu_post["ekf_frame_velocity"],
-                self.__omega_hat
+                self.__mu_post["ekf_frame_velocity"], self.__omega_hat
             )
             base_se3 = imu_se3.act(self.__SE3_base_to_imu)
             base_motion = self.__SE3_imu_to_base.act(imu_motion)
@@ -561,15 +565,15 @@ class EKF:
             self.__base_state["base_orientation"] = q
         # mu post is expressed in the base frame.
         else:
-            self.__base_state["base_position"] = (
-                self.__mu_post["ekf_frame_position"]
-            )
-            self.__base_state["base_velocity"] = (
-                self.__mu_post["ekf_frame_velocity"]
-            )
-            self.__base_state["base_orientation"] = (
-                self.__mu_post["ekf_frame_orientation"]
-            )
+            self.__base_state["base_position"] = self.__mu_post[
+                "ekf_frame_position"
+            ]
+            self.__base_state["base_velocity"] = self.__mu_post[
+                "ekf_frame_velocity"
+            ]
+            self.__base_state["base_orientation"] = self.__mu_post[
+                "ekf_frame_orientation"
+            ]
         return self.__base_state
 
 

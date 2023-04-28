@@ -157,7 +157,8 @@ public:
      *
      * @param base_se3_position [XYZ Quaternion] SE3 representation of the base
      * position with respect to the world frame.
-     * @param base_se3_velocity [Linear Angular] base velocity in the base frame.
+     * @param base_se3_velocity [Linear Angular] base velocity in the base
+     * frame.
      */
     void set_initial_state(
         Eigen::Ref<const Eigen::Matrix<double, 7, 1> > base_se3_position,

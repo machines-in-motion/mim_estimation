@@ -34,8 +34,9 @@ void bind_end_effector_force_estimator()
                  (EndEffectorForceEstimator::*)(const std::vector<std::string>&
                                                     frame_names))>(
                  &EndEffectorForceEstimator::add_contact_frame))
-        .def("get_force", make_function(&EndEffectorForceEstimator::get_force,
-                          return_value_policy<copy_const_reference>()))
+        .def("get_force",
+             make_function(&EndEffectorForceEstimator::get_force,
+                           return_value_policy<copy_const_reference>()))
         .def("__repr__", &EndEffectorForceEstimator::to_string);
 }
 
