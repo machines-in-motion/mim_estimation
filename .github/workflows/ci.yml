@@ -7,7 +7,6 @@ jobs:
   
     strategy:
       matrix:
-          os: [ubuntu-20.04]
           build_type: [Release, Debug]
 
     env:
@@ -20,7 +19,7 @@ jobs:
     # well on Windows or Mac.  You can convert this to a matrix build if you need
     # cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-20.04
 
     steps:
       #
@@ -28,7 +27,6 @@ jobs:
       #
       - name: Setup OS.
         uses: machines-in-motion/mim_github_actions/setup_ubuntu20_04@main
-        if: ${{ matrix.os == "ubuntu-20.04" }}
 
       #
       # Checkout the current package locally
