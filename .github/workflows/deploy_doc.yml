@@ -7,7 +7,7 @@ on:
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
+  BUILD_TYPE: Debug
   BUILD_FOLDER: ${{github.workspace}}/../build
   DEVEL_FOLDER: ${{github.workspace}}/../devel
 
@@ -23,8 +23,14 @@ jobs:
       #
       # Setup the machines and build environment
       #
-      - name: Setup Ubuntu20.04.
+      - name: Setup OS.
         uses: machines-in-motion/mim_github_actions/setup_ubuntu20_04@main
+
+      #
+      # Install the openrobots packages
+      #
+      - name: Setup Openrobots.
+        uses: machines-in-motion/mim_github_actions/setup_laas_packages@main
 
       #
       # Checkout the current package locally
@@ -41,6 +47,18 @@ jobs:
           ssh-private-key: ${{ secrets.GA_SSH_PRIVATE_KEY }}
 
       #
+      # Clone the dependencies that needs to be built.
+      #
+      - name: Clone dependencies and build them.
+        id: clone_and_build_dep
+        uses: machines-in-motion/mim_github_actions/treep_clone_and_build@main
+        with:
+          treep_configurations: |
+            git@github.com:machines-in-motion/treep_machines_in_motion.git
+          projects_or_repos: |
+            MIM_ESTIMATION_DEPENDENCIES
+      
+      #
       # Build and test the current package.
       #
       - name: Build and run CTest.
@@ -48,8 +66,12 @@ jobs:
         run: |
           mkdir -p $BUILD_FOLDER
           cd $BUILD_FOLDER
+          echo Source environment.
+          source /opt/openrobots/setup.bash
+          source ${{ steps.clone_and_build_dep.outputs.setup_file }}
           cmake ${{github.workspace}} -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DGENERATE_DOCUMENTATION=ON
           cmake --build . --config $BUILD_TYPE
+          env CTEST_OUTPUT_ON_FAILURE=1 ctest -C $BUILD_TYPE
 
       #
       # Copy the compiled documentation to the github page of the group.
