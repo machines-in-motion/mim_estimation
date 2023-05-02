@@ -274,8 +274,10 @@ void BaseEkfWithImuKin::integrate_process_model(
 
     if (settings_.is_imu_frame)
     {
-        root_angular_velocity_ = imu_gyroscope - posterior_state_.bias_gyroscope;
-        root_linear_acceleration_ = imu_accelerometer - posterior_state_.bias_accelerometer;
+        root_angular_velocity_ =
+            imu_gyroscope - posterior_state_.bias_gyroscope;
+        root_linear_acceleration_ =
+            imu_accelerometer - posterior_state_.bias_accelerometer;
     }
     else
     {
@@ -299,7 +301,8 @@ void BaseEkfWithImuKin::integrate_process_model(
     }
 
     predicted_state_.position =
-        posterior_state_.position + attitude_post_ * posterior_state_.linear_velocity * dt;
+        posterior_state_.position +
+        attitude_post_ * posterior_state_.linear_velocity * dt;
     predicted_state_.linear_velocity =
         posterior_state_.linear_velocity +
         (-root_angular_velocity_.cross(posterior_state_.linear_velocity) +
@@ -414,8 +417,9 @@ void BaseEkfWithImuKin::measurement_model(
                 Eigen::Vector3d base_angular_velocity =
                     settings_.imu_in_base.rotation() * root_angular_velocity_;
                 // imu frame velocity
-                pinocchio::Motion vel_base_in_base(-kin_ee_velocity_[i] -
-                    base_angular_velocity.cross(kin_ee_position_[i]),
+                pinocchio::Motion vel_base_in_base(
+                    -kin_ee_velocity_[i] -
+                        base_angular_velocity.cross(kin_ee_position_[i]),
                     base_angular_velocity);
 
                 pinocchio::Motion vel_imu_in_imu =
@@ -436,8 +440,7 @@ void BaseEkfWithImuKin::measurement_model(
                 pinocchio::skew(kin_ee_position_[i]);
             // compute measurement error
             meas_error_.segment<3>(i * 3) =
-                kin_meas_root_velocity_[i] -
-                predicted_state_.linear_velocity;
+                kin_meas_root_velocity_[i] - predicted_state_.linear_velocity;
         }
         // Otherwise we set the error to 0.
         else

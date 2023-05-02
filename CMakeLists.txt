@@ -9,7 +9,7 @@
 #
 cmake_minimum_required(VERSION 3.10.2)
 
-project(mim_estimation)
+project(mim_estimation VERSION 0.1.0)
 
 # specify the C++ 17 standard
 set(CMAKE_CXX_STANDARD 17)

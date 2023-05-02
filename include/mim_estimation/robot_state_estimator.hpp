@@ -83,29 +83,29 @@ public:
     /**
      * @brief Estimate the robot base velocity and postion assuming the contact
      * schedule is known.
-     * 
-     * @param contact_schedule 
-     * @param imu_accelerometer 
-     * @param imu_gyroscope 
-     * @param joint_position 
-     * @param joint_velocity 
-     * @param joint_torque 
+     *
+     * @param contact_schedule
+     * @param imu_accelerometer
+     * @param imu_gyroscope
+     * @param joint_position
+     * @param joint_velocity
+     * @param joint_torque
      */
     void run(const std::vector<bool>& contact_schedule,
              Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
              Eigen::Ref<const Eigen::Vector3d> imu_gyroscope,
              Eigen::Ref<const Eigen::VectorXd> joint_position,
              Eigen::Ref<const Eigen::VectorXd> joint_velocity);
-    
+
     /**
      * @brief Estimate the robot base velocity and postion and the contact
      * states.
-     * 
-     * @param imu_accelerometer 
-     * @param imu_gyroscope 
-     * @param joint_position 
-     * @param joint_velocity 
-     * @param joint_torque 
+     *
+     * @param imu_accelerometer
+     * @param imu_gyroscope
+     * @param joint_position
+     * @param joint_velocity
+     * @param joint_torque
      */
     void run(Eigen::Ref<const Eigen::Vector3d> imu_accelerometer,
              Eigen::Ref<const Eigen::Vector3d> imu_gyroscope,

@@ -29,4 +29,4 @@ std::string make_signal_string(const bool& is_input_signal,
 }
 
 }  // namespace dynamic_graph
-}  // namespace mim_control
+}  // namespace mim_estimation

@@ -5,7 +5,7 @@
 
 using namespace mim_estimation::standard_filters;
 
-class FilterTest : public ::testing::Test
+class ButterworthFilterTest : public ::testing::Test
 {
 protected:
     virtual void SetUp()
@@ -16,7 +16,7 @@ protected:
     }
 };
 
-TEST_F(FilterTest, butterworth_filter_test)
+TEST_F(ButterworthFilterTest, butterworth_filter_test)
 {
     Eigen::Matrix<double, 100, 1> data, ref_data, fil_data;
     data.setZero();

@@ -1,27 +1,33 @@
-mim_estimation
------------
+# mim_estimation
 
-# Introduction
+## Introduction
 
 This package contains estimation algorithm C++ implementations with their Python
 bindings and their Python prototypes.
 
-# Getting started
+## Getting started
 
 ### Installation
 
 #### Dependencies
 
-```
-- Pinocchio
+- Pinocchio (Required)
+    - See [this tutorial](https://github.com/machines-in-motion/machines-in-motion.github.io/wiki/laas_package_from_binaries)
+    in order to install `pinocchio` or you can follow [this tutorial](https://github.com/machines-in-motion/ubuntu_installation_scripts) 
+    to install related robotpkg software.
 - Mim_Control (Optional, needed to run demos)
+    - Internal github organization software see the next paragraph for the installation.
 - Matplotlib (Optional, needed to run demos)
+    - pip or apt installable software.
 - BulletUtils (Optional, needed to run demos)
+    - Internal github organization software see the next paragraph for the installation.
 - Robot_Properties_Solo (Optional, needed to run demos)
+    - Internal github organization software see the next paragraph for the installation.
 - Robot_Properties_Bolt (Optional, needed to run demos)
-```
+    - Internal github organization software see the next paragraph for the installation.
 
-#### Download the package
+
+#### Download the package.
 
 External dependencies:
 See [this tutorial](https://github.com/machines-in-motion/machines-in-motion.github.io/wiki/laas_package_from_binaries)
@@ -82,6 +88,13 @@ BSD 3-Clause
 
 # Authors
 
+Main authors:
+
+- Shahram Khorshidi
+- Ahmad Gazar
+
+Secondary collaborators
+
 - Maximilien Naveau (mnaveau@tue.mpg.de)
 - Julian Viereck (jviereck@tue.mpg.de)
 - Avadesh Meduri (ameduri@tue.mpg.de)
@@ -89,3 +102,18 @@ BSD 3-Clause
 - Ludovic Righetti (lrighetti@tue.mpg.de)
 - Nick Rotella
 - Brahayam Ponton
+
+# Cite the work
+
+Please if you use this repository cite the work:
+https://arxiv.org/abs/2202.12574
+```
+@misc{khorshidi2023use,
+      title={On the Use of Torque Measurement in Centroidal State Estimation}, 
+      author={Shahram Khorshidi and Ahmad Gazar and Nicholas Rotella and Maximilien Naveau and Ludovic Righetti and Maren Bennewitz and Majid Khadiv},
+      year={2023},
+      eprint={2202.12574},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO}
+}
+```

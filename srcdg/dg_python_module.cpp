@@ -26,8 +26,8 @@ BOOST_PYTHON_MODULE(entities)
     dynamicgraph::python::exposeEntity<RobotStateEstimator>()
         .def(
             "initialize",
-            +[](boost::python::object py_obj, boost::python::object py_settings)
-            {
+            +[](boost::python::object py_obj,
+                boost::python::object py_settings) {
                 // get the C++ pointer.
                 RobotStateEstimator *cpp_obj =
                     boost::python::extract<RobotStateEstimator *>(py_obj);

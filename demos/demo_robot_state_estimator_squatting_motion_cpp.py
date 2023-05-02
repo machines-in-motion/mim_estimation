@@ -15,9 +15,6 @@ import matplotlib.pyplot as plt
 import pinocchio
 
 
-
-
-
 class DataCollection(object):
     def __init__(self, max_nb_it):
         self.max_nb_it = max_nb_it
