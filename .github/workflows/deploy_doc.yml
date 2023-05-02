@@ -3,7 +3,7 @@ name: check_main_branch_and_deploy_doc
 on:
   push:
     branches:
-      - master
+      - main
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
